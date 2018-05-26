@@ -1,4 +1,3 @@
-local Utility = require("scripts/Utility")
 local morph = {}
 
 morph.optionEnable = Menu.AddOptionBool({"Hero Specific", "Morph"}, "Enable", false)
