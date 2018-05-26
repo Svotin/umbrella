@@ -201,9 +201,14 @@ function morph.GetTotalDmg(target,dmg, myHero)--ЧЕСТНО СПИЗДИЛ
 	if NPC.HasModifier(myHero, "modifier_bloodseeker_bloodrage") then
 		totalDmg = totalDmg * 1.4
 	end
-	if NPC.HasModifier(target,"modifier_item_hood_of_defiance_barrier") then --НЕ РАБОТАЕТ, ПОДОЖДУ ПОКА ДРУГИЕ СДЕЛАЮТ И СПИЗЖУ!
+	if NPC.HasModifier(target,"modifier_item_hood_of_defiance_barrier") then 
 		totalDmg = totalDmg - 400
 	end
+	if NPC.HasModifier(target,"modifier_item_pipe_barrier") then 
+		totalDmg = totalDmg - 400
+	end
+	if NPC.HasModifier(target,"modifier_ember_spirit_flame_guard") then 
+		totalDmg = totalDmg - 500
 	return totalDmg
 end
 
