@@ -1,3 +1,4 @@
+
 local morph = {}
 
 morph.optionEnable = Menu.AddOptionBool({"Hero Specific", "Morph"}, "Enable", false)
@@ -208,6 +209,7 @@ function morph.GetTotalDmg(target,dmg, myHero)--ЧЕСТНО СПИЗДИЛ
 	end
 	if NPC.HasModifier(target,"modifier_ember_spirit_flame_guard") then 
 		totalDmg = totalDmg - 500
+	end
 	return totalDmg
 end
 
