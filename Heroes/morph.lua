@@ -231,6 +231,17 @@ function morph.GetTotalDmg(target,dmg, myHero)--ЧЕСТНО СПИЗДИЛ
 	if NPC.HasModifier(target,"modifier_ursa_enrage") then
 		totalDmg = totalDmg * 0.2
 	end
+	local dispersion = NPC.GetAbility(target, "spectre_dispersion")
+	if dispersion then
+		if NPC.GetAbility(target, "special_bonus_unique_spectre") then
+			totalDmg = totalDmg * 0.70
+		else
+			totalDmg = totalDmg*0.78
+		end
+	end
+	if NPC.HasModifier(target, "modifier_wisp_overcharge") then 
+		totalDmg = totalDmg*0.80
+	end
 	local bristleback = NPC.GetAbility(target, "bristleback_bristleback")
 	if bristleback then 
 		totalDmg = totalDmg * 0.4
