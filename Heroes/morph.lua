@@ -4,11 +4,14 @@ morph.optionEnable = Menu.AddOptionBool({"Hero Specific", "Morph"}, "Enable", fa
 morph.AutoShift = Menu.AddOptionBool({"Hero Specific", "Morph","AutoShift"}, "Enable", false)
 morph.AdditionalAbilities = Menu.AddOptionBool({"Hero Specific", "Morph","AutoShift"}, "[unstable]additionalAbilities", false)
 morph.AutoKill = Menu.AddOptionBool({"Hero Specific", "Morph", "EBladeAutoKill"}, "Enable", false)
+morph.AutoKillKey = Menu.AddKeyOption({"Hero Specific",  "Morph", "EBladeAutoKill"}, "Toggle Key", Enum.ButtonCode.KEY_0)
+morph.customResist = Menu.AddOptionSlider({"Hero Specific", "Morph", "EBladeAutoKill"}, "customResist", 0, 80, 25)
 
 morph.myHero = nil
 morph.players = {}
 morph.ability = {}
-
+Font = Renderer.LoadFont("Tahoma", 22, Enum.FontWeight.BOLD)
+morph.localDmg = 0
 
 morph.defaultAbilities = {
 	{"npc_dota_hero_axe", "axe_berserkers_call", 300, false},   		--false - пробивает через бкб
@@ -56,6 +59,13 @@ function morph.OnUpdate()
     end
 	morph.myHero = Heroes.GetLocal()
 	if NPC.GetUnitName(morph.myHero) ~= "npc_dota_hero_morphling" then return end
+	if Menu.IsKeyDownOnce(morph.AutoKillKey) then
+		if Menu.IsEnabled(morph.AutoKill) then
+			Menu.SetEnabled(morph.AutoKill, false)
+		else 
+			Menu.SetEnabled(morph.AutoKill, true)
+		end		
+	end
 	local FHeroes = Heroes.GetAll()
 	if Menu.IsEnabled(morph.AutoShift) then
 		if not Entity.IsAlive(morph.myHero) or NPC.IsStunned(morph.myHero) or NPC.IsSilenced(morph.myHero) then return end
@@ -106,23 +116,27 @@ function morph.OnUpdate()
 		local ebladeMultiplier = 1
 		local ebladeDmg = 0
 		if strikeDmg ~= 0 then 
-			totalMana = totalMana + Ability.GetManaCost(strike)
-			castRange = Ability.GetCastRange(strike)
+			if Ability.GetManaCost(strike)<= NPC.GetMana(morph.myHero) then
+				totalMana = totalMana + Ability.GetManaCost(strike)
+				castRange = Ability.GetCastRange(strike)
+			end
 		end
 		if eblade and Ability.IsReady(eblade) then
-			ebladeMultiplier = 1.4
-			ebladeDmg = 75 + (2 * agility)
-			totalMana = totalMana + Ability.GetManaCost(eblade)
-			castRange = Ability.GetCastRange(eblade)
+			if Ability.GetManaCost(eblade)+totalMana <= NPC.GetMana(morph.myHero) then
+				ebladeMultiplier = 1.4
+				ebladeDmg = 75 + (2 * agility)
+				totalMana = totalMana + Ability.GetManaCost(eblade)
+				castRange = Ability.GetCastRange(eblade)
+			end
 		end
-		if ebladeDmg == 0 and strikeDmg == 0 then return end
+		if ebladeDmg == 0 and strikeDmg == 0 then  morph.localDmg = 0 return end
 		local intMultiplier = ((0.069 * intellect) / 100) + 1
+		morph.localDmg = ((strikeDmg+ebladeDmg)*ebladeMultiplier)*intMultiplier
 		for _,hero in pairs(FHeroes) do
 			if hero ~= nil and hero ~= 0 and NPCs.Contains(hero) and NPC.IsEntityInRange(morph.myHero, hero,castRange) and not Entity.IsSameTeam(hero,morph.myHero) then
 				if Entity.IsAlive(hero) and not Entity.IsDormant(hero) and not NPC.IsIllusion(hero) and Menu.IsEnabled(morph.players[Hero.GetPlayerID(hero)]) and morph.IsHasGuard(hero)=="nil"  then
-					local localDmg = ((strikeDmg+ebladeDmg)*ebladeMultiplier)*intMultiplier
-					local totalDmg = morph.GetTotalDmg(hero, localDmg, morph.myHero) - 2
-					if Entity.GetHealth(hero) <= totalDmg and totalMana <= NPC.GetMana(morph.myHero) then
+					local totalDmg = morph.GetTotalDmg(hero, morph.localDmg, morph.myHero) - 2
+					if Entity.GetHealth(hero) <= totalDmg then
 						if ebladeDmg > 0 then
 							Ability.CastTarget(eblade, hero)
 						end
@@ -140,7 +154,8 @@ function getStrikeDmg(agility, strenght, strike)
 	if not strike then return 0 end
 	if not Ability.IsReady(strike) then return 0 end
 	local strikeLevel = Ability.GetLevel(strike)
-	local damageMultiplier
+	if strikeLevel == 0 then return 0 end
+	local damageMultiplier = 0.5
 	local minMultiplier  = 0.5
 	local maxMultiplier = 0.5 + (strikeLevel*0.5)
 	local totalAttributies = agility + strenght
@@ -149,7 +164,7 @@ function getStrikeDmg(agility, strenght, strike)
 	else
 		damageMultiplier = minMultiplier
 	end
-	strikeDmg = 100 + agility*damageMultiplier
+	strikeDmg = 100 + (agility*damageMultiplier)
 	return strikeDmg
 end
 
@@ -202,6 +217,13 @@ end
 function morph.GetTotalDmg(target,dmg, myHero)--ЧЕСТНО СПИЗДИЛ
 	if not target or not myHero then return end
 	local totalDmg = (dmg * NPC.GetMagicalArmorDamageMultiplier(target))
+	local kaya = NPC.GetItem(morph.myHero, "item_kaya", true)
+	if kaya then 
+		totalDmg = totalDmg*1.1 
+	end
+	if NPC.HasModifier(target,"modifier_dark_willow_shadow_realm_buff") then 
+		return 0
+	end
 	local mana_shield = NPC.GetAbility(target, "medusa_mana_shield")
 	if mana_shield and Ability.GetToggleState(mana_shield) then
 			totalDmg = totalDmg * 0.4
@@ -232,6 +254,41 @@ function morph.GetTotalDmg(target,dmg, myHero)--ЧЕСТНО СПИЗДИЛ
 		totalDmg = totalDmg - 500
 	end
 	return totalDmg
+end
+
+function morph.OnDraw()
+	if morph.myHero == nil or NPC.GetUnitName(morph.myHero) ~= "npc_dota_hero_morphling" then return end
+	local autoKillMode
+	local x, y = Renderer.GetScreenSize()
+	local x1, y1
+	if x == 1920 and y == 1080 then
+		x, y = 1150, 910
+	elseif x== 1600 and y == 900 then
+		x, y = 950, 755
+	elseif x== 1366 and y == 768 then
+		x, y = 805, 643
+	elseif x==1280 and y == 720 then
+		x, y = 752, 600
+	elseif x==1280 and y == 1024 then
+		x, y = 800, 860
+	elseif x==1440 and y == 900 then
+		x, y = 870, 755
+	elseif x== 1680 and y == 1050 then
+		x, y = 1025, 885
+	end
+	x1 = x
+	y1 = y-20
+	if Menu.IsEnabled(morph.AutoKill)  then
+		Renderer.SetDrawColor(255, 255, 0)
+		autoKillMode = "ON"		
+	else
+		Renderer.SetDrawColor(255, 0, 0)
+		autoKillMode = "OFF"
+		morph.localDmg = 0
+	end
+	local customResist = (100-Menu.GetValue(morph.customResist)-1)/100
+	Renderer.DrawText(Font, x, y, "AutoKill: ["..autoKillMode.."]")
+	Renderer.DrawText(Font, x1, y1, "Damage: ["..math.floor(morph.localDmg*customResist).."]")
 end
 
 return morph
