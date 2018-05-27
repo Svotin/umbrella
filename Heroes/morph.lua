@@ -186,7 +186,8 @@ function morph.IsHasGuard(npc) --ЧЕСТНО СПИЗДИЛ
 		NPC.HasModifier(npc,"modifier_nyx_assassin_spiked_carapace") or
 		NPC.HasModifier(npc,"modifier_abaddon_borrowed_time") or
 		NPC.HasModifier(npc,"modifier_item_aeon_disk_buff") or
-
+		NPC.HasModifier(npc,"modifier_dark_willow_shadow_realm_buff") or
+		NPC.HasModifier(npc,"modifier_dazzle_shallow_grave") or 
 		NPC.HasModifier(npc,"modifier_special_bonus_spell_block") then
 			guarditis = "Immune"
 	end
@@ -220,9 +221,6 @@ function morph.GetTotalDmg(target,dmg, myHero)--ЧЕСТНО СПИЗДИЛ
 	local kaya = NPC.GetItem(morph.myHero, "item_kaya", true)
 	if kaya then 
 		totalDmg = totalDmg*1.1 
-	end
-	if NPC.HasModifier(target,"modifier_dark_willow_shadow_realm_buff") then 
-		return 0
 	end
 	local mana_shield = NPC.GetAbility(target, "medusa_mana_shield")
 	if mana_shield and Ability.GetToggleState(mana_shield) then
