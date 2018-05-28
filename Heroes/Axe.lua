@@ -24,7 +24,7 @@ function axe.OnUpdate()
 	axe.myHero = Heroes.GetLocal()
 	if NPC.GetUnitName(axe.myHero) ~= "npc_dota_hero_axe" then return end
 	if not Entity.IsAlive(axe.myHero) or NPC.IsStunned(axe.myHero) or NPC.IsSilenced(axe.myHero)  then return end
-	if Input.IsKeyDown(axe.optionKey) then
+	if Menu.IsKeyDown(axe.optionKey) then
 		if enemy == nil then 
 			enemy = Input.GetNearestHeroToCursor(Entity.GetTeamNum(axe.myHero), Enum.TeamType.TEAM_ENEMY)
 			if not NPC.IsPositionInRange(enemy, Input.GetWorldCursorPos(), Menu.GetValue(axe.enemyInRange), 0) then
@@ -129,8 +129,10 @@ end
 function axe.OnDraw()
 	if axe.myHero == nil or NPC.GetUnitName(axe.myHero) ~= "npc_dota_hero_axe" or not Menu.IsEnabled(axe.optionEnable) then return end
 	local target = Input.GetNearestHeroToCursor(Entity.GetTeamNum(axe.myHero), Enum.TeamType.TEAM_ENEMY)
-	if not NPC.IsPositionInRange(target, Input.GetWorldCursorPos(), Menu.GetValue(axe.enemyInRange), 0) then
-		target = nil 
+	if target then
+		if not NPC.IsPositionInRange(target, Input.GetWorldCursorPos(), Menu.GetValue(axe.enemyInRange), 0) then
+			target = nil 
+		end
 	end
 	local x, y = Renderer.GetScreenSize()
 	if x == 1920 and y == 1080 then
