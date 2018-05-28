@@ -10,7 +10,7 @@ morph.customResist = Menu.AddOptionSlider({"Hero Specific", "Morph", "EBladeAuto
 morph.myHero = nil
 morph.players = {}
 morph.ability = {}
-Font = Renderer.LoadFont("Tahoma", 22, Enum.FontWeight.BOLD)
+Font = Renderer.LoadFont("Tahoma", 20, Enum.FontWeight.BOLD)
 morph.localDmg = 0
 
 morph.defaultAbilities = {
@@ -136,7 +136,7 @@ function morph.OnUpdate()
 			if hero ~= nil and hero ~= 0 and NPCs.Contains(hero) and NPC.IsEntityInRange(morph.myHero, hero,castRange) and not Entity.IsSameTeam(hero,morph.myHero) then
 				if Entity.IsAlive(hero) and not Entity.IsDormant(hero) and not NPC.IsIllusion(hero) and Menu.IsEnabled(morph.players[Hero.GetPlayerID(hero)]) and morph.IsHasGuard(hero)=="nil"  then
 					local totalDmg = morph.GetTotalDmg(hero, morph.localDmg, morph.myHero) - 2
-					if Entity.GetHealth(hero) <= totalDmg then
+					if Entity.GetHealth(hero)+NPC.GetHealthRegen(hero) <= totalDmg then
 						if ebladeDmg > 0 then
 							Ability.CastTarget(eblade, hero)
 						end
@@ -177,6 +177,15 @@ function morph.IsHasGuard(npc) --ЧЕСТНО СПИЗДИЛ
 	if spell_shield and Ability.IsReady(spell_shield) and (NPC.HasModifier(npc, "modifier_item_ultimate_scepter") or NPC.HasModifier(npc, "modifier_item_ultimate_scepter_consumed")) then
 		guarditis = "Lotus"
 	end
+	local abaddonUlt = NPC.GetAbility(npc, "abaddon_borrowed_time")
+	if abaddonUlt then
+			if Ability.IsReady(abaddonUlt) or Ability.SecondsSinceLastUse(abaddonUlt)<=1 then --рот ебал этого казино, он даёт прокаст, когда абилка уже в кд, а модификатора ещё нет.
+				guarditis = "Immune"
+			end
+	end
+	if NPC.GetAbility(npc,"special_bonus_unique_queen_of_pain") then 
+		guarditis = "Linkens"
+	end
 	if NPC.HasModifier(npc,"modifier_item_lotus_orb_active") then guarditis = "Lotus" end
 	if 	NPC.HasState(npc,Enum.ModifierState.MODIFIER_STATE_MAGIC_IMMUNE) or 
 		NPC.HasState(npc,Enum.ModifierState.MODIFIER_STATE_OUT_OF_GAME) or
@@ -184,8 +193,8 @@ function morph.IsHasGuard(npc) --ЧЕСТНО СПИЗДИЛ
 		NPC.HasModifier(npc,"modifier_winter_wyvern_winters_curse") or
 		NPC.HasModifier(npc,"modifier_templar_assassin_refraction_absorb") or
 		NPC.HasModifier(npc,"modifier_nyx_assassin_spiked_carapace") or
-		NPC.HasModifier(npc,"modifier_abaddon_borrowed_time") or
 		NPC.HasModifier(npc,"modifier_item_aeon_disk_buff") or
+		NPC.HasModifier(npc,"modifier_abaddon_borrowed_time") or
 		NPC.HasModifier(npc,"modifier_dark_willow_shadow_realm_buff") or
 		NPC.HasModifier(npc,"modifier_dazzle_shallow_grave") or 
 		NPC.HasModifier(npc,"modifier_special_bonus_spell_block") then
@@ -218,6 +227,10 @@ end
 function morph.GetTotalDmg(target,dmg, myHero)--ЧЕСТНО СПИЗДИЛ
 	if not target or not myHero then return end
 	local totalDmg = (dmg * NPC.GetMagicalArmorDamageMultiplier(target))
+	local rainDrop = NPC.GetItem(target, "item_infused_raindrop", true)
+	if rainDrop and Ability.IsReady(rainDrop) then
+		totalDmg = totalDmg - 120
+	end
 	local kaya = NPC.GetItem(morph.myHero, "item_kaya", true)
 	if kaya then 
 		totalDmg = totalDmg*1.1 
@@ -231,11 +244,7 @@ function morph.GetTotalDmg(target,dmg, myHero)--ЧЕСТНО СПИЗДИЛ
 	end
 	local dispersion = NPC.GetAbility(target, "spectre_dispersion")
 	if dispersion then
-		if NPC.GetAbility(target, "special_bonus_unique_spectre") then
-			totalDmg = totalDmg * 0.70
-		else
-			totalDmg = totalDmg*0.78
-		end
+		totalDmg = totalDmg * 0.70
 	end
 	if NPC.HasModifier(target, "modifier_wisp_overcharge") then 
 		totalDmg = totalDmg*0.80
@@ -262,6 +271,9 @@ function morph.GetTotalDmg(target,dmg, myHero)--ЧЕСТНО СПИЗДИЛ
 	if NPC.HasModifier(target,"modifier_ember_spirit_flame_guard") then 
 		totalDmg = totalDmg - 500
 	end
+	if NPC.HasModifier(target,"abaddon_aphotic_shield") then 
+		totalDmg = totalDmg - 200
+	end	
 	return totalDmg
 end
 
