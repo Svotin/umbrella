@@ -24,7 +24,7 @@ function axe.OnUpdate()
 	axe.myHero = Heroes.GetLocal()
 	if NPC.GetUnitName(axe.myHero) ~= "npc_dota_hero_axe" then return end
 	if not Entity.IsAlive(axe.myHero) or NPC.IsStunned(axe.myHero) or NPC.IsSilenced(axe.myHero)  then return end
-	if Input.IsKeyDown(Enum.ButtonCode.KEY_Z) then
+	if Input.IsKeyDown(axe.optionKey) then
 		if enemy == nil then 
 			enemy = Input.GetNearestHeroToCursor(Entity.GetTeamNum(axe.myHero), Enum.TeamType.TEAM_ENEMY)
 			if not NPC.IsPositionInRange(enemy, Input.GetWorldCursorPos(), Menu.GetValue(axe.enemyInRange), 0) then
