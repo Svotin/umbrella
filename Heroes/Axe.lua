@@ -1,7 +1,7 @@
 local axe = {}
 
 axe.optionEnable = Menu.AddOptionBool({"Hero Specific", "Axe"}, "Enable", false)
-axe.blinkRadius = Menu.AddOptionBool({"Hero Specific", "Axe"}, "Range of Blink", false)
+axe.blinkRadius = Menu.AddOptionBool({"Hero Specific", "Axe"}, "Range of the Blink Distance", false)
 axe.optionAutoUltEnable = Menu.AddOptionBool({"Hero Specific", "Axe", "Auto Culling"}, "Enable", false)
 axe.customRange = Menu.AddOptionSlider({"Hero Specific", "Axe", "Auto Culling"}, "Range to Target", 120, 300, 120)
 axe.optionKey = Menu.AddKeyOption({"Hero Specific", "Axe"}, "Combo Key", Enum.ButtonCode.KEY_Z)
