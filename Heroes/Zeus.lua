@@ -280,7 +280,7 @@ function Zeus.GetTotalWrathDmg(target,dmg, myHero)--ЧЕСТНО СПИЗДИЛ
 	if rainDrop and Ability.IsReady(rainDrop) then
 		totalDmg = totalDmg - 120
 	end
-	local kaya = NPC.GetItem(morph.myHero, "item_kaya", true)
+	local kaya = NPC.GetItem(myHero, "item_kaya", true)
 	if kaya then 
 		totalDmg = totalDmg*1.1 
 	end
