@@ -4,7 +4,8 @@ Zeus = {}
 Zeus.optionEnable = Menu.AddOptionBool({"Hero Specific", "Zeus"}, "Enable", false)
 Zeus.TPcancel = Menu.AddOptionBool({"Hero Specific", "Zeus"}, "Cancel TP's", false)
 Zeus.autoUlt = Menu.AddOptionBool({"Hero Specific", "Zeus"}, "Auto Wrath", false)
-Zeus.KillForUlt = Menu.AddOptionSlider({"Hero Specific", "Zeus"}, "Minimum Killed by Wrath", 1, 5, 1)
+Zeus.KillForUlt = Menu.AddOptionSlider({"Hero Specific", "Zeus"}, "Minimum Killed by Wrath", 0, 5, 1)
+Zeus.KillForRefresher = Menu.AddOptionSlider({"Hero Specific", "Zeus"}, "Minimum Killed by Wrath with Refresher", 0, 5, 1)
 Zeus.comboKey = Menu.AddKeyOption({"Hero Specific", "Zeus"}, "Combo Key", Enum.ButtonCode.KEY_7)
 Zeus.lastHitKey = Menu.AddKeyOption({"Hero Specific", "Zeus"}, "LastHit Key", Enum.ButtonCode.KEY_6)
 Zeus.harrasKey = Menu.AddKeyOption({"Hero Specific", "Zeus"}, "Harras Key", Enum.ButtonCode.KEY_5)
@@ -35,6 +36,7 @@ arc = nil
 castRangeBonus = nil
 wrath = nil
 target = nil
+refresher = nil
 
 function Zeus.OnUpdate()
 	if not Menu.IsEnabled(Zeus.optionEnable) or not Engine.IsInGame() or not Heroes.GetLocal() then return end
@@ -42,7 +44,7 @@ function Zeus.OnUpdate()
 	if NPC.GetUnitName(myHero) ~= "npc_dota_hero_zuus" then return end
 	myMana = NPC.GetMana(myHero)
 	if not Entity.IsAlive(myHero) or NPC.IsStunned(myHero) or NPC.IsSilenced(myHero) then  Zeus.ZeroingVars() return end
-	if Menu.IsKeyDown(Zeus.lastHitKey) or Menu.IsKeyDown(Zeus.harrasKey) and arc ~= nil and castRangeBonus ~= nil then
+	if Menu.IsKeyDown(Zeus.lastHitKey) or Menu.IsKeyDown(Zeus.harrasKey) and arc and castRangeBonus then
 		Engine.ExecuteCommand("dota_range_display " .. Ability.GetCastRange(arc)+castRangeBonus)
 	else
 		Engine.ExecuteCommand("dota_range_display " .. 0)
@@ -56,8 +58,8 @@ function Zeus.OnUpdate()
 		end
 	end
 	if Menu.IsEnabled(Zeus.TPcancel) then
-		local nimbus = NPC.GetAbility(myHero, "zuus_cloud")
-		if not nimbus then return end
+		local nimbus1 = NPC.GetAbility(myHero, "zuus_cloud")
+		if not nimbus1 then return end
 		if tp_position ~= nil then
 			local AllHeroes = Heroes.GetAll()
 			for i,hero in pairs(AllHeroes) do
@@ -71,8 +73,8 @@ function Zeus.OnUpdate()
 					end
 				end
 			end
-			if Ability.IsReady(nimbus) and Ability.GetManaCost(nimbus)<=NPC.GetMana(myHero) then
-				Ability.CastPosition(nimbus, tp_position)
+			if Ability.IsReady(nimbus1) and Ability.IsCastable(nimbus1,myMana) and not Ability.IsHidden(nimbus1) then
+				Ability.CastPosition(nimbus1, tp_position)
 				Zeus.ZeroingVars()
 				return
 			end
@@ -87,8 +89,21 @@ function Zeus.OnUpdate()
 	end
 	if Menu.IsEnabled(Zeus.autoUlt) then 
 		wrath = NPC.GetAbility(myHero, "zuus_thundergods_wrath")
-		if wrath then 
-			if Zeus.UltiKillCount(myHero, myMana, wrath) then Ability.CastNoTarget(wrath) return end
+		refresher = NPC.GetItem(myHero, "item_refresher_shard", true)
+		if not refresher then
+			refresher = NPC.GetItem(myHero, "item_refresher", true) 
+		end
+		if wrath and Ability.IsReady(wrath) and Ability.IsCastable(wrath,myMana) then 
+			if Zeus.UltiKillCount(myHero, myMana, wrath, 1, Menu.GetValue(Zeus.KillForRefresher)) and Ability.IsReady(refresher) then 
+				Ability.CastNoTarget(wrath) 
+				Ability.CastNoTarget(refresher)
+				Ability.CastNoTarget(wrath)
+				return 
+			end
+			if Zeus.UltiKillCount(myHero, myMana, wrath, 0, Menu.GetValue(Zeus.KillForUlt)) then
+				Ability.CastNoTarget(wrath) 
+				return 
+			end
 		end
 	end
 end
@@ -215,22 +230,33 @@ function Zeus.Combo(myHero, target)
 	return false
 end
 
-function Zeus.UltiKillCount(myHero, myMana, ult)
+function Zeus.UltiKillCount(myHero, myMana, ult, flag, kills)
+	if kills == 0 then return false end
 	if not myHero then return false end
+	if not Ability.IsReady(ult) and not Ability.IsCastable(ult,myMana) then return false end
 	local count = 0
+	mana = 0
 	local ultDamage = Zeus.GetWrathDmg(ult, myMana, myHero)
-	for i = 1, Heroes.Count(), 1 do
-	local enemy = Heroes.Get(i)
-		if enemy ~= nil and Entity.IsHero(enemy) and not Entity.IsSameTeam(myHero, enemy) then
+	if flag == 0 then ultCount = 1 end
+	if flag == 1 and not refresher then return false end
+	if flag == 1 then 
+		ultCount = 2 
+		mana = Ability.GetManaCost(ult)*2+Ability.GetManaCost(refresher)
+	end
+
+	local AllHeroes = Heroes.GetAll()
+	for i,enemy in pairs(AllHeroes) do
+		if enemy ~= nil and Entity.IsHero(enemy) and not Entity.IsSameTeam(myHero, enemy) and Entity.IsAlive(enemy) and not Entity.IsDormant(enemy) and not NPC.IsIllusion(enemy) then 
 			if Zeus.IsHasGuard(enemy)~="Immune" then
 				local totalDmg = Zeus.GetTotalWrathDmg(enemy,ultDamage, myHero)
-				if Entity.GetHealth(enemy)+NPC.GetHealthRegen(enemy) <= totalDmg then
+				if Entity.GetHealth(enemy)+NPC.GetHealthRegen(enemy) <= totalDmg*ultCount then
+					if mana > myMana then return false end
 					count = count + 1
 				end
 			end
 		end
 	end
-	if count >= Menu.GetValue(Zeus.KillForUlt) then return true end
+	if count >= kills then return true end
 	return false
 
 end
