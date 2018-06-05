@@ -1,7 +1,7 @@
 local morph = {}
 
 morph.optionEnable = Menu.AddOptionBool({"Hero Specific", "Morph"}, "Enable", false)
-morph.maxWaveRange =  Menu.AddOptionBool({"Hero Specific", "Morph"}, "Max Range Waveform", false)
+morph.maxWaveRange =  Menu.AddOptionBool({"Hero Specific", "Morph"}, "Max Waveform Range", false)
 morph.AutoShift = Menu.AddOptionBool({"Hero Specific", "Morph","AutoShift"}, "Enable", false)
 morph.AdditionalAbilities = Menu.AddOptionBool({"Hero Specific", "Morph","AutoShift"}, "[unstable]additionalAbilities", false)
 morph.AutoKill = Menu.AddOptionBool({"Hero Specific", "Morph", "EBladeAutoKill"}, "Enable", false)
