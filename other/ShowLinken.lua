@@ -1,7 +1,7 @@
 local ShowLinken =  {}
 
 ShowLinken.option = Menu.AddOptionBool({ "Awareness" }, "Show Linken", false)
-ShowLinken.font = Renderer.LoadFont("Tahoma", 20, Enum.FontWeight.BOLD)
+ShowLinken.font = Renderer.LoadFont("Tahoma", 22, Enum.FontWeight.BOLD)
 
 function ShowLinken.OnDraw()
     if not Menu.IsEnabled(ShowLinken.option) then return end
@@ -16,7 +16,7 @@ function ShowLinken.OnDraw()
             local x, y, visible = Renderer.WorldToScreen(pos)
 
             if visible and pos then
-                Renderer.SetDrawColor(255, 0, 255, 255)
+                Renderer.SetDrawColor(255, 255, 0, 255)
                 Renderer.DrawText(ShowLinken.font, x, y, "Linken", 1)
             end
         end
