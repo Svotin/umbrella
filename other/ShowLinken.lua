@@ -1,6 +1,6 @@
 local ShowLinken =  {}
 
-ShowLinken.option = Menu.AddOptionBool({ "Awareness" }, "Show Linkens", false)
+ShowLinken.option = Menu.AddOptionBool({ "Awareness" }, "Show Linken", false)
 ShowLinken.font = Renderer.LoadFont("Tahoma", 20, Enum.FontWeight.BOLD)
 
 function ShowLinken.OnDraw()
@@ -11,13 +11,13 @@ function ShowLinken.OnDraw()
     if not myHero then return end
     local AllHeroes = Heroes.GetAll()
     for i,hero in pairs(AllHeroes) do
-        if hero and Entity.IsHero(hero) and Entity.IsAlive(hero) and not Entity.IsSameTeam(myHero, hero) and NPC.IsVisible(hero) and ShowLinken.checkProtection(hero) then
+        if hero and Entity.IsHero(hero) and Entity.IsAlive(hero) and not Entity.IsSameTeam(myHero, hero) and NPC.IsVisible(hero) and ShowLinken.checkProtection(hero) and not NPC.IsIllusion(hero) then
             local pos = Entity.GetAbsOrigin(hero)
             local x, y, visible = Renderer.WorldToScreen(pos)
 
             if visible and pos then
                 Renderer.SetDrawColor(255, 0, 255, 255)
-                Renderer.DrawText(ShowLinken.font, x, y, "Linkens", 1)
+                Renderer.DrawText(ShowLinken.font, x, y, "Linken", 1)
             end
         end
     end
