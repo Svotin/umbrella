@@ -1,15 +1,14 @@
 local morph = {}
 
 morph.optionEnable = Menu.AddOptionBool({"Hero Specific", "Morph"}, "Enable", false)
+morph.maxWaveRange =  Menu.AddOptionBool({"Hero Specific", "Morph"}, "Max Range Waveform", false)
 morph.AutoShift = Menu.AddOptionBool({"Hero Specific", "Morph","AutoShift"}, "Enable", false)
 morph.AdditionalAbilities = Menu.AddOptionBool({"Hero Specific", "Morph","AutoShift"}, "[unstable]additionalAbilities", false)
 morph.AutoKill = Menu.AddOptionBool({"Hero Specific", "Morph", "EBladeAutoKill"}, "Enable", false)
 morph.AutoKillKey = Menu.AddKeyOption({"Hero Specific",  "Morph", "EBladeAutoKill"}, "Toggle Key", Enum.ButtonCode.KEY_0)
-morph.customResist = Menu.AddOptionSlider({"Hero Specific", "Morph", "EBladeAutoKill"}, "customResist", 0, 80, 25)
 
 morph.myHero = nil
 morph.players = {}
-morph.ability = {}
 Font = Renderer.LoadFont("Tahoma", 20, Enum.FontWeight.BOLD)
 morph.localDmg = 0
 
@@ -19,35 +18,30 @@ morph.defaultAbilities = {
 	{"npc_dota_hero_enigma", "enigma_black_hole", 720, false},
 	{"npc_dota_hero_magnataur", "magnataur_reverse_polarity", 430, false},
 	{"npc_dota_hero_slardar", "slardar_slithereen_crush", 355, true},
-	{"npc_dota_hero_centaur", "centaur_hoof_stomp", 345, true}
-
---	{"npc_dota_hero_batrider", "batrider_flaming_lasso", 170},
---	{"npc_dota_hero_faceless_void", "faceless_void_chronosphere", 1100},
---	{"npc_dota_hero_legion_commander", "legion_commander_duel", 150},
---	{"npc_dota_hero_beastmaster", "beastmaster_primal_roar", 600},
---	{"npc_dota_hero_sven", "sven_storm_bolt", 600},
---	{"npc_dota_hero_bane", "bane_fiends_grip", 625},
---	{"npc_dota_hero_pudge", "pudge_dismember", 160},
---	{"npc_dota_hero_doom_bringer", "doom_bringer_doom", 550},
---	{"npc_dota_hero_disruptor", "disruptor_static_storm", 1450}
-}
-morph.additionalAbilities = {
-	{"npc_dota_hero_axe", "axe_berserkers_call", 300, false},
-	{"npc_dota_hero_tidehunter", "tidehunter_ravage", 1250, true},
-	{"npc_dota_hero_enigma", "enigma_black_hole", 720, false},
-	{"npc_dota_hero_magnataur", "magnataur_reverse_polarity", 430, false},
-	{"npc_dota_hero_slardar", "slardar_slithereen_crush", 355, true},
 	{"npc_dota_hero_centaur", "centaur_hoof_stomp", 345, true},
-
-	--------------------------------------------------------------------
-
-	{"npc_dota_hero_batrider", "batrider_flaming_lasso", 170, false},
-	{"npc_dota_hero_faceless_void", "faceless_void_chronosphere", 1100, false},
-	{"npc_dota_hero_legion_commander", "legion_commander_duel", 150, false},
-	{"npc_dota_hero_pudge", "pudge_dismember", 160, false}
+	{"npc_dota_hero_earthshaker" ,"earthshaker_fissure", 300, true},
+	{"npc_dota_hero_earthshaker" ,"earthshaker_enchant_totem", 300, true},
+	{"npc_dota_hero_faceless_void", "faceless_void_chronosphere", 1100, false}
 }
 
+morph.additionalAbilities = {
+	{"npc_dota_hero_batrider", "batrider_flaming_lasso", 170},
+	{"npc_dota_hero_legion_commander", "legion_commander_duel", 150},
+	{"npc_dota_hero_pudge", "pudge_dismember", 160},
+	{"npc_dota_hero_doom_bringer", "doom_bringer_doom", 650},
+	{"npc_dota_hero_bane", "bane_fiends_grip", 625},
+	{"npc_dota_hero_beastmaster", "beastmaster_primal_roar", 600},
+}
 
+morph.projectileAbilities = {
+	{"npc_dota_hero_alchemist", 900},
+	{"npc_dota_hero_sven", 1000},
+	{"npc_dota_hero_chaos_knight", 1000},
+	{"npc_dota_hero_skeleton_king", 1000},
+	{"npc_dota_hero_vengefulspirit", 1250},
+	{"npc_dota_hero_dragon_knight", 1600},
+	{"npc_dota_hero_windrunner", 1650}
+}
 function morph.OnUpdate()
 	if not Menu.IsEnabled(morph.optionEnable) or not Engine.IsInGame() or not Heroes.GetLocal() then 
 		for i = 0, 10 do
@@ -70,14 +64,9 @@ function morph.OnUpdate()
 	if Menu.IsEnabled(morph.AutoShift) then
 		if not Entity.IsAlive(morph.myHero) or NPC.IsStunned(morph.myHero) or NPC.IsSilenced(morph.myHero) then return end
 		local shift = NPC.GetAbilityByIndex(morph.myHero, 4)
-		if Menu.IsEnabled(morph.AdditionalAbilities) then
-			morph.ability = morph.additionalAbilities
-		else 
-			morph.ability = morph.defaultAbilities
-		end
 		for _,v in pairs(FHeroes) do
 			if v and Entity.IsHero(v) and Entity.IsAlive(v) and not Entity.IsSameTeam(morph.myHero, v) and not Entity.IsDormant(v) and not NPC.IsIllusion(v) then
-				for i,k in pairs(morph.ability) do
+				for i,k in pairs(morph.defaultAbilities) do
 					if NPC.GetUnitName(v) == k[1] then
 						local p1 = NPC.GetAbility(v, k[2])
 						if p1 ~= (nil or 0) and Ability.IsInAbilityPhase(p1) then								 
@@ -86,14 +75,29 @@ function morph.OnUpdate()
 								if NPC.HasState(morph.myHero,Enum.ModifierState.MODIFIER_STATE_MAGIC_IMMUNE) and k[4] then 
 									return 
 								end
-								if not Ability.GetToggleState(shift) then
-									Ability.Toggle(shift)
-											return
+								morph.toggleShift(morph.myHero)
+								return
+							end
+						end
+					end
+				end	
+				if Menu.IsEnabled(morph.AdditionalAbilities) then
+					for i,k in pairs(morph.additionalAbilities) do
+						if NPC.GetUnitName(v) == k[1] then
+							local p1 = NPC.GetAbility(v, k[2])
+							if p1 ~= (nil or 0) and Ability.IsInAbilityPhase(p1) then								 
+								local p2 = Ability.GetCastPoint(p1)
+								if NPC.IsEntityInRange(morph.myHero, v, k[3]) and NPC.FindFacingNPC(v)==morph.myHero then
+									if NPC.IsLinkensProtected(morph.myHero) then 
+										return 
+									end
+									morph.toggleShift(morph.myHero)
+									return
 								end
 							end
 						end
 					end
-				end		
+				end	
 			end
 		end
 	end
@@ -231,7 +235,7 @@ function morph.GetTotalDmg(target,dmg, myHero)--ЧЕСТНО СПИЗДИЛ
 	if rainDrop and Ability.IsReady(rainDrop) then
 		totalDmg = totalDmg - 120
 	end
-	local kaya = NPC.GetItem(morph.myHero, "item_kaya", true)
+	local kaya = NPC.GetItem(myHero, "item_kaya", true)
 	if kaya then 
 		totalDmg = totalDmg*1.1 
 	end
@@ -305,11 +309,58 @@ function morph.OnDraw()
 	else
 		Renderer.SetDrawColor(255, 0, 0)
 		autoKillMode = "OFF"
-		morph.localDmg = 0
 	end
-	local customResist = (100-Menu.GetValue(morph.customResist)-1)/100
 	Renderer.DrawText(Font, x, y, "AutoKill: ["..autoKillMode.."]")
-	Renderer.DrawText(Font, x1, y1, "Damage: ["..math.floor(morph.localDmg*customResist).."]")
+end
+
+function morph.OnProjectile(projectile)
+	if morph.myHero == nil or NPC.GetUnitName(morph.myHero) ~= "npc_dota_hero_morphling" then return end 
+	if not Menu.IsEnabled(morph.AutoShift) or not Menu.IsEnabled(morph.optionEnable) then return end
+	local target = projectile.target
+	local source = NPC.GetUnitName(projectile.source)
+	local speed = projectile.moveSpeed
+	if target == morph.myHero then
+		for k,hero in pairs(morph.projectileAbilities) do
+			if source == hero[1] and speed == hero[2] and not NPC.IsLinkensProtected(morph.myHero) then
+				morph.toggleShift(morph.myHero)
+				return
+			end 
+		end
+	end
+end
+
+function  morph.toggleShift(myHero)
+	local shift = NPC.GetAbilityByIndex(myHero, 4)
+	if not shift then return end
+	if not Ability.GetToggleState(shift) then
+		Ability.Toggle(shift)
+				return
+	end
+end
+
+function morph.OnPrepareUnitOrders(orders) --xenohack
+	if not orders then return true end
+	if not Menu.IsEnabled(morph.maxWaveRange) then return true end
+	
+	if not orders.order or orders.order ~= Enum.UnitOrder.DOTA_UNIT_ORDER_CAST_POSITION then return true end
+	if not orders.npc or NPC.GetUnitName(orders.npc) ~= "npc_dota_hero_morphling" then return true end
+	if not orders.ability or Ability.GetName(orders.ability) ~= "morphling_waveform" then return true end
+
+	local castRange = Ability.GetCastRange(orders.ability)
+	if NPC.IsPositionInRange(orders.npc, orders.position, castRange, 0) then return true end
+	
+    local origin = Entity.GetAbsOrigin(orders.npc)
+    local dir = orders.position - origin
+
+    dir:SetZ(0)
+    dir:Normalize()
+    dir:Scale(castRange - 1)
+
+    local pos = origin + dir
+
+    Player.PrepareUnitOrders(orders.player, orders.order, nil, pos, orders.ability, orders.orderIssuer, orders.npc, orders.queue, orders.showEffects)
+
+    return false
 end
 
 return morph
