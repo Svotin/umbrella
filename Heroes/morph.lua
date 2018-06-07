@@ -1,15 +1,17 @@
 local morph = {}
 
-morph.optionEnable = Menu.AddOptionBool({"Hero Specific", "Morph"}, "Enable", false)
-morph.maxWaveRange =  Menu.AddOptionBool({"Hero Specific", "Morph"}, "Max Waveform Range", false)
-morph.AutoShift = Menu.AddOptionBool({"Hero Specific", "Morph","AutoShift"}, "Enable", false)
-morph.AdditionalAbilities = Menu.AddOptionBool({"Hero Specific", "Morph","AutoShift"}, "[unstable]additionalAbilities", false)
-morph.AutoKill = Menu.AddOptionBool({"Hero Specific", "Morph", "EBladeAutoKill"}, "Enable", false)
-morph.AutoKillKey = Menu.AddKeyOption({"Hero Specific",  "Morph", "EBladeAutoKill"}, "Toggle Key", Enum.ButtonCode.KEY_0)
+morph.optionEnable = Menu.AddOptionBool({"Hero Specific", "Morphling"}, "Enable", false)
+morph.maxWaveRange =  Menu.AddOptionBool({"Hero Specific", "Morphling"}, "Max Waveform Range", false)
+morph.AutoKill = Menu.AddOptionBool({"Hero Specific", "Morphling", "EBlade Auto Kill"}, "Enable", false)
+morph.AutoKillKey = Menu.AddKeyOption({"Hero Specific",  "Morphling", "EBlade Auto Kill"}, "Toggle Key", Enum.ButtonCode.KEY_0)
+morph.Display = Menu.AddOptionBool({"Hero Specific", "Morphling"}, "Damage Info", false)
+morph.AutoShift = Menu.AddOptionBool({"Hero Specific", "Morphling","Auto Shift"}, "Enable", false)
+morph.AdditionalAbilities = Menu.AddOptionBool({"Hero Specific", "Morphling","Auto Shift"}, "[BETA]Additional Abilities", false)
 
 morph.myHero = nil
 morph.players = {}
 Font = Renderer.LoadFont("Tahoma", 20, Enum.FontWeight.BOLD)
+FontForStatus = Renderer.LoadFont("Tahoma", 16, Enum.FontWeight.BOLD)
 morph.localDmg = 0
 
 morph.defaultAbilities = {
@@ -101,14 +103,16 @@ function morph.OnUpdate()
 			end
 		end
 	end
-	if Menu.IsEnabled(morph.AutoKill) then
+	if Menu.IsEnabled(morph.AutoKill) or Menu.IsEnabled(morph.Display) then
 		for i = 1, Heroes.Count() do
    			local hero = Heroes.Get(i)
    			if not Entity.IsSameTeam(morph.myHero, hero) and not morph.players[Hero.GetPlayerID(hero)] and hero ~= morph.myHero then 
-   				morph.players[Hero.GetPlayerID(hero)] = Menu.AddOptionBool({"Hero Specific", "Morph", "EBladeAutoKill"}, string.upper(string.sub(NPC.GetUnitName(hero), 15)), false)
+   				morph.players[Hero.GetPlayerID(hero)] = Menu.AddOptionBool({"Hero Specific", "Morphling", "EBlade Auto Kill"}, string.upper(string.sub(NPC.GetUnitName(hero), 15)), true)
    				return
    			end
    		end 
+   	end
+   	if Menu.IsEnabled(morph.AutoKill) or Menu.IsEnabled(morph.Display) then
    		local strike = NPC.GetAbilityByIndex(morph.myHero, 1)
    		local eblade = NPC.GetItem(morph.myHero, "item_ethereal_blade", true)
 		local agility = Hero.GetAgilityTotal(morph.myHero)
@@ -136,6 +140,7 @@ function morph.OnUpdate()
 		if ebladeDmg == 0 and strikeDmg == 0 then  morph.localDmg = 0 return end
 		local intMultiplier = ((0.069 * intellect) / 100) + 1
 		morph.localDmg = ((strikeDmg+ebladeDmg)*ebladeMultiplier)*intMultiplier
+		if not Menu.IsEnabled(morph.AutoKill) then return end
 		for _,hero in pairs(FHeroes) do
 			if hero ~= nil and hero ~= 0 and NPCs.Contains(hero) and NPC.IsEntityInRange(morph.myHero, hero,castRange) and not Entity.IsSameTeam(hero,morph.myHero) then
 				if Entity.IsAlive(hero) and not Entity.IsDormant(hero) and not NPC.IsIllusion(hero) and Menu.IsEnabled(morph.players[Hero.GetPlayerID(hero)]) and morph.IsHasGuard(hero)=="nil"  then
@@ -178,7 +183,8 @@ function morph.IsHasGuard(npc) --ЧЕСТНО СПИЗДИЛ
 	if NPC.IsLinkensProtected(npc) then guarditis = "Linkens" end
 	if NPC.HasModifier(npc,"modifier_item_blade_mail_reflect") then guarditis = "BM" end
 	local spell_shield = NPC.GetAbility(npc, "antimage_spell_shield")
-	if spell_shield and Ability.IsReady(spell_shield) and (NPC.HasModifier(npc, "modifier_item_ultimate_scepter") or NPC.HasModifier(npc, "modifier_item_ultimate_scepter_consumed")) then
+	if spell_shield and Ability.IsReady(spell_shield) and (NPC.HasModifier(npc, "modifier_item_ultimate_scepter") or NPC.HasModifier(npc, "modifier_item_ultimate_scepter_consumed")) 
+	and not NPC.HasModifier(enemy,"modifier_silver_edge_debuff") and not NPC.HasModifier(enemy,"modifier_viper_nethertoxin") then
 		guarditis = "Lotus"
 	end
 	local abaddonUlt = NPC.GetAbility(npc, "abaddon_borrowed_time")
@@ -311,13 +317,39 @@ function morph.OnDraw()
 		autoKillMode = "OFF"
 	end
 	Renderer.DrawText(Font, x, y, "AutoKill: ["..autoKillMode.."]")
+	if Menu.IsEnabled(morph.Display) then
+		local FHeroes = Heroes.GetAll()
+		for _,hero in pairs(FHeroes) do
+			if hero ~= nil and hero ~= 0 and NPCs.Contains(hero) and not Entity.IsSameTeam(hero,morph.myHero) then
+				if Entity.IsAlive(hero) and not Entity.IsDormant(hero) and not NPC.IsIllusion(hero) then
+					local totalDmg = morph.GetTotalDmg(hero, morph.localDmg, morph.myHero) - 2
+					local dmg = Entity.GetHealth(hero) - totalDmg 
+					if dmg > 0 then
+						Renderer.SetDrawColor(255, 0, 0)
+					else
+						Renderer.SetDrawColor(255, 255, 0)
+					end
+					local pos = Entity.GetAbsOrigin(hero)
+		            local x, y, visible = Renderer.WorldToScreen(pos)
+
+		            if visible and pos then
+		                Renderer.DrawText(FontForStatus, x, y-12, math.floor(dmg), 1)
+		            end
+				end
+			end
+		end
+	end
 end
 
 function morph.OnProjectile(projectile)
+	morph.myHero = Heroes.GetLocal()
 	if morph.myHero == nil or NPC.GetUnitName(morph.myHero) ~= "npc_dota_hero_morphling" then return end 
 	if not Menu.IsEnabled(morph.AutoShift) or not Menu.IsEnabled(morph.optionEnable) then return end
 	local target = projectile.target
-	local source = NPC.GetUnitName(projectile.source)
+	local source = nil
+	if Entity.IsEntity(projectile.source) then
+		source = NPC.GetUnitName(projectile.source)
+	end
 	local speed = projectile.moveSpeed
 	if target == morph.myHero then
 		for k,hero in pairs(morph.projectileAbilities) do
