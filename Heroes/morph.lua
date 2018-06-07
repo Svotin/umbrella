@@ -376,8 +376,8 @@ function morph.OnPrepareUnitOrders(orders) --xenohack
 	if not Menu.IsEnabled(morph.maxWaveRange) then return true end
 	
 	if not orders.order or orders.order ~= Enum.UnitOrder.DOTA_UNIT_ORDER_CAST_POSITION then return true end
-	if not orders.npc or NPC.GetUnitName(orders.npc) ~= "npc_dota_hero_morphling" then return true end
-	if not orders.ability or Ability.GetName(orders.ability) ~= "morphling_waveform" then return true end
+	if not orders.npc or not Entity.IsNPC(orders.npc) or NPC.GetUnitName(orders.npc) ~= "npc_dota_hero_morphling" then return true end
+	if not orders.ability or not Entity.IsAbility(orders.ability) or Ability.GetName(orders.ability) ~= "morphling_waveform" then return true end
 
 	local castRange = Ability.GetCastRange(orders.ability)
 	if NPC.IsPositionInRange(orders.npc, orders.position, castRange, 0) then return true end
