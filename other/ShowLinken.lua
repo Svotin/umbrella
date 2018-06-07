@@ -26,10 +26,10 @@ end
 function ShowLinken.checkProtection(enemy)
     if NPC.IsLinkensProtected(enemy) then return true end
     local spell_shield = NPC.GetAbility(enemy, "antimage_spell_shield")
-    if spell_shield and Ability.IsReady(spell_shield) and (NPC.HasModifier(enemy, "modifier_item_ultimate_scepter") or NPC.HasModifier(enemy, "modifier_item_ultimate_scepter_consumed")) then
-        return true
+    if spell_shield and Ability.IsReady(spell_shield) and (NPC.HasModifier(enemy, "modifier_item_ultimate_scepter") or NPC.HasModifier(enemy, "modifier_item_ultimate_scepter_consumed")) 
+    and not NPC.HasModifier(enemy,"modifier_silver_edge_debuff") and not NPC.HasModifier(enemy,"modifier_viper_nethertoxin") then
+        return true 
     end
-    if NPC.GetAbility(enemy,"special_bonus_unique_queen_of_pain") then return true end
     return false
 end
 
