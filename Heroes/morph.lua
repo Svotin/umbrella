@@ -11,7 +11,7 @@ morph.AdditionalAbilities = Menu.AddOptionBool({"Hero Specific", "Morphling","Au
 morph.myHero = nil
 morph.players = {}
 Font = Renderer.LoadFont("Tahoma", 20, Enum.FontWeight.BOLD)
-FontForStatus = Renderer.LoadFont("Tahoma", 16, Enum.FontWeight.BOLD)
+FontForStatus = Renderer.LoadFont("Tahoma", 17, Enum.FontWeight.BOLD)
 morph.localDmg = 0
 
 morph.defaultAbilities = {
@@ -184,7 +184,7 @@ function morph.IsHasGuard(npc) --ЧЕСТНО СПИЗДИЛ
 	if NPC.HasModifier(npc,"modifier_item_blade_mail_reflect") then guarditis = "BM" end
 	local spell_shield = NPC.GetAbility(npc, "antimage_spell_shield")
 	if spell_shield and Ability.IsReady(spell_shield) and (NPC.HasModifier(npc, "modifier_item_ultimate_scepter") or NPC.HasModifier(npc, "modifier_item_ultimate_scepter_consumed")) 
-	and not NPC.HasModifier(enemy,"modifier_silver_edge_debuff") and not NPC.HasModifier(enemy,"modifier_viper_nethertoxin") then
+	and not NPC.HasModifier(npc,"modifier_silver_edge_debuff") and not NPC.HasModifier(npc,"modifier_viper_nethertoxin") then
 		guarditis = "Lotus"
 	end
 	local abaddonUlt = NPC.GetAbility(npc, "abaddon_borrowed_time")
@@ -334,7 +334,7 @@ function morph.OnDraw()
 		            local x, y, visible = Renderer.WorldToScreen(pos)
 
 		            if visible and pos then
-		                Renderer.DrawText(FontForStatus, x, y-12, math.floor(dmg), 1)
+		                Renderer.DrawText(FontForStatus, x, y-12, math.abs(math.floor(dmg)), 1)
 		            end
 				end
 			end
