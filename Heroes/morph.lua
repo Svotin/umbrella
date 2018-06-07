@@ -288,6 +288,7 @@ function morph.GetTotalDmg(target,dmg, myHero)--ЧЕСТНО СПИЗДИЛ
 end
 
 function morph.OnDraw()
+	if not Menu.IsEnabled(morph.optionEnable) then return end
 	if morph.myHero == nil or NPC.GetUnitName(morph.myHero) ~= "npc_dota_hero_morphling" then return end
 	local autoKillMode
 	local x, y = Renderer.GetScreenSize()
@@ -327,7 +328,7 @@ function morph.OnDraw()
 					if dmg > 0 then
 						Renderer.SetDrawColor(255, 0, 0)
 					else
-						Renderer.SetDrawColor(255, 255, 0)
+						Renderer.SetDrawColor(90, 255, 100)
 					end
 					local pos = Entity.GetAbsOrigin(hero)
 		            local x, y, visible = Renderer.WorldToScreen(pos)
