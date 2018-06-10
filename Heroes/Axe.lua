@@ -20,6 +20,7 @@ axe.myHero = nil
 enemy1 = nil
 Font = Renderer.LoadFont("Tahoma", 22, Enum.FontWeight.BOLD)
 flagForCall = false  --костыль
+axe.sleepers = {}
 
 function axe.OnUpdate()
 
@@ -48,8 +49,11 @@ function axe.OnUpdate()
 	for _,hero in pairs(AllHeroes) do
 		if hero ~= nil and hero ~= 0 and NPCs.Contains(hero) and NPC.IsEntityInRange(axe.myHero, hero,castRange) and not Entity.IsSameTeam(hero,axe.myHero) then
 			if Entity.IsAlive(hero) and not Entity.IsDormant(hero) and not NPC.IsIllusion(hero) then 
-				if Entity.GetHealth(hero) + NPC.GetHealthRegen(hero) <= damage and not axe.checkProtection(hero) and mana <= NPC.GetMana(axe.myHero) then
+				if Entity.GetHealth(hero) + NPC.GetHealthRegen(hero) <= damage and not axe.checkProtection(hero) and mana <= NPC.GetMana(axe.myHero) and axe.SleepCheck(0.3, "delay") then
 					Ability.CastTarget(ulti, hero)
+          if NPC.HasModifier(hero,"modifier_skeleton_king_reincarnation_scepter") then
+            axe.Sleep(0.3,"delay")
+          end
 					break
 				end
 			end
@@ -73,10 +77,23 @@ function axe.Combo(myHero,enemy)
     local axePos = Entity.GetAbsOrigin(myHero)
     local blinkPos = Vector(enemy:GetX() - axePos:GetX(),enemy:GetY() - axePos:GetY(),enemy:GetZ() - axePos:GetZ())
     local range = (blinkPos:GetX()^2+blinkPos:GetY()^2+blinkPos:GetZ()^2)^(0.5)
-	if range > 1199 then return end
+	if range > 1199  then return end
     -- if not NPC.IsEntityInRange(myHero, enemy, callRange) then
     local myMana = NPC.GetMana(myHero)
-
+    if NPC.HasModifier(myHero, "modifier_pugna_nether_ward_aura") then 
+    if blink and Menu.IsEnabled(axe.optionEnableBlink) and Ability.IsReady(blink) and Ability.IsReady(call) and Ability.IsCastable(call, myMana) then
+        Ability.CastPosition(blink,enemy)
+        enemy1 = nil
+        flagForCall = true
+     -- return true
+    end
+    if flagForCall then
+      Ability.CastNoTarget(call)
+      flagForCall = false
+      enemy1 = nil
+      --return false
+    end
+    end
     if Blademail and Menu.IsEnabled(axe.optionEnableBlademail) and Ability.IsCastable(Blademail, myMana) then
       	Ability.CastNoTarget(Blademail)
       --	return true
@@ -117,9 +134,9 @@ function axe.Combo(myHero,enemy)
      --	return true
     end
     if flagForCall then
-		Ability.CastNoTarget(call)
-		flagForCall = false
-		enemy1 = nil
+  		Ability.CastNoTarget(call)
+  		flagForCall = false
+  		enemy1 = nil
    		--return false
    	end
    	enemy1 = nil
@@ -135,9 +152,22 @@ function axe.checkProtection(enemy)
 	end
 	if NPC.GetAbility(enemy,"special_bonus_unique_queen_of_pain") then return true end
 	if NPC.HasModifier(enemy,"modifier_dark_willow_shadow_realm_buff") then return true end
-  if NPC.HasModifier(enemy,"modifier_skeleton_king_reincarnation_scepter") then return true end
+  if NPC.HasModifier(enemy,"modifier_skeleton_king_reincarnation_scepter_active") then return true end
+
 	return false
 end
 
+function axe.SleepCheck(delay, id)
+  if not axe.sleepers[id] or (os.clock() - axe.sleepers[id]) > delay then
+    return true
+  end
+  return false
+end
+
+function axe.Sleep(delay, id)
+  if not axe.sleepers[id] or axe.sleepers[id] < os.clock() + delay then
+    axe.sleepers[id] = os.clock() + delay
+  end
+end
 
 return axe
