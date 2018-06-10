@@ -219,7 +219,9 @@ function Zeus.Combo(myHero, target)
 					Ability.CastPosition(nimbus, Entity.GetAbsOrigin(target))
 					return true
 				end	
-				Player.AttackTarget(Players.GetLocal(), myHero, target, false)
+				if NPC.IsEntityInRange(myHero, target, 380) then
+					Player.AttackTarget(Players.GetLocal(), myHero, target, false)
+				end
 			end		
 		end
 	end
