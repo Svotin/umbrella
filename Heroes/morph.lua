@@ -207,7 +207,8 @@ function morph.IsHasGuard(npc) --ЧЕСТНО СПИЗДИЛ
 		NPC.HasModifier(npc,"modifier_abaddon_borrowed_time") or
 		NPC.HasModifier(npc,"modifier_dark_willow_shadow_realm_buff") or
 		NPC.HasModifier(npc,"modifier_dazzle_shallow_grave") or 
-		NPC.HasModifier(npc,"modifier_special_bonus_spell_block") then
+		NPC.HasModifier(npc,"modifier_special_bonus_spell_block") or
+		NPC.HasModifier(npc,"modifier_skeleton_king_reincarnation_scepter_active") then
 			guarditis = "Immune"
 	end
 	if NPC.HasModifier(npc,"modifier_legion_commander_duel") then
@@ -284,6 +285,24 @@ function morph.GetTotalDmg(target,dmg, myHero)--ЧЕСТНО СПИЗДИЛ
 	if NPC.HasModifier(target,"abaddon_aphotic_shield") then 
 		totalDmg = totalDmg - 200
 	end	
+	local pangoCrash = NPC.GetModifier(target, "modifier_pangolier_shield_crash_buff")
+	if pangoCrash and pangoCrash ~= 0 then
+		local pangoStack = Modifier.GetStackCount(pangoCrash)
+		totalDmg = totalDmg*((100 - pangoStack)/100)
+	end
+	local visageCloak = NPC.GetModifier(target, "modifier_visage_gravekeepers_cloak")
+	if visageCloak and visageCloak ~= 0 then
+		local visageStack = Modifier.GetStackCount(visageCloak)
+		totalDmg = totalDmg * (1 - (0.2*visageStack))
+	end
+	if NPC.HasModifier(target, "modifier_kunkka_ghost_ship_damage_absorb") then
+		totalDmg = totalDmg * 0.5
+	end
+	if NPC.HasModifier(target, "modifier_shadow_demon_soul_catcher") then
+		local soulCatcherLvl = Ability.GetLevel(Modifier.GetAbility(NPC.GetModifier(target, "modifier_shadow_demon_soul_catcher")))
+		Log.Write((1.1 + (0.1 * soulCatcherLvl)))
+		totalDmg = totalDmg * (1.1 + (0.1 * soulCatcherLvl))
+	end
 	return totalDmg
 end
 
@@ -376,7 +395,7 @@ function morph.OnPrepareUnitOrders(orders) --xenohack
 	if not Menu.IsEnabled(morph.maxWaveRange) then return true end
 	
 	if not orders.order or orders.order ~= Enum.UnitOrder.DOTA_UNIT_ORDER_CAST_POSITION then return true end
-	if not orders.npc or not Entity.IsNPC(orders.npc) or NPC.GetUnitName(orders.npc) ~= "npc_dota_hero_morphling" then return true end
+	if not orders.npc or orders.npc == 0 or NPC.GetUnitName(orders.npc) ~= "npc_dota_hero_morphling" then return true end
 	if not orders.ability or not Entity.IsAbility(orders.ability) or Ability.GetName(orders.ability) ~= "morphling_waveform" then return true end
 
 	local castRange = Ability.GetCastRange(orders.ability)
