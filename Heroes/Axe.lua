@@ -135,6 +135,7 @@ function axe.checkProtection(enemy)
 	end
 	if NPC.GetAbility(enemy,"special_bonus_unique_queen_of_pain") then return true end
 	if NPC.HasModifier(enemy,"modifier_dark_willow_shadow_realm_buff") then return true end
+  if NPC.HasModifier(enemy,"modifier_skeleton_king_reincarnation_scepter") then return true end
 	return false
 end
 

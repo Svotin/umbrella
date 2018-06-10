@@ -6,9 +6,11 @@ Zeus.TPcancel = Menu.AddOptionBool({"Hero Specific", "Zeus"}, "Cancel TP's", fal
 Zeus.autoUlt = Menu.AddOptionBool({"Hero Specific", "Zeus"}, "Auto Wrath", false)
 Zeus.KillForUlt = Menu.AddOptionSlider({"Hero Specific", "Zeus"}, "Minimum Killed by Wrath", 0, 5, 1)
 Zeus.KillForRefresher = Menu.AddOptionSlider({"Hero Specific", "Zeus"}, "Minimum Killed by Wrath with Refresher", 0, 5, 1)
+Zeus.killStealWithNimbus = Menu.AddOptionBool({"Hero Specific", "Zeus"}, "Kill Steal from Nimbus", false)
 Zeus.comboKey = Menu.AddKeyOption({"Hero Specific", "Zeus"}, "Combo Key", Enum.ButtonCode.KEY_7)
 Zeus.lastHitKey = Menu.AddKeyOption({"Hero Specific", "Zeus"}, "LastHit Key", Enum.ButtonCode.KEY_6)
 Zeus.harrasKey = Menu.AddKeyOption({"Hero Specific", "Zeus"}, "Harras Key", Enum.ButtonCode.KEY_5)
+Zeus.enemyInRange = Menu.AddOptionSlider({"Hero Specific", "Zeus"}, "Closest to mouse range", 100, 600, 100)
 
 Zeus.AutoArcane = Menu.AddOptionBool({"Hero Specific", "Zeus"}, "Auto Arcane Boots", false)
 
@@ -17,6 +19,7 @@ Zeus.optionArc = Menu.AddOptionBool({"Hero Specific", "Zeus", "Ablilities"}, "Ar
 Zeus.optionBolt = Menu.AddOptionBool({"Hero Specific", "Zeus", "Ablilities"}, "Lightining Bolt", false)
 Zeus.optionNimbus = Menu.AddOptionBool({"Hero Specific", "Zeus", "Ablilities"}, "Nimbus", false)
 
+Zeus.optionBlink = Menu.AddOptionBool({"Hero Specific", "Zeus", "Items"}, "Blink Dagger", false)
 Zeus.optionSoulRing = Menu.AddOptionBool({"Hero Specific", "Zeus", "Items"}, "Soul Ring", false)
 Zeus.optionDagon = Menu.AddOptionBool({"Hero Specific", "Zeus", "Items"}, "Dagon", false)
 Zeus.optionDiscord = Menu.AddOptionBool({"Hero Specific", "Zeus", "Items"}, "Veil of Discord", false)
@@ -30,10 +33,10 @@ myMana = nil
 
 tp_index = nil
 tp_position = nil
-flag = false
+flag = false -- сам забыл зачем он тут...
+
 
 arc = nil
-castRangeBonus = nil
 wrath = nil
 target = nil
 refresher = nil
@@ -43,22 +46,22 @@ function Zeus.OnUpdate()
 	myHero = Heroes.GetLocal()
 	if NPC.GetUnitName(myHero) ~= "npc_dota_hero_zuus" then return end
 	myMana = NPC.GetMana(myHero)
+	local nimbus1 = NPC.GetAbility(myHero, "zuus_cloud")
 	if not Entity.IsAlive(myHero) or NPC.IsStunned(myHero) or NPC.IsSilenced(myHero) then  Zeus.ZeroingVars() return end
-	if Menu.IsKeyDown(Zeus.lastHitKey) or Menu.IsKeyDown(Zeus.harrasKey) and arc and castRangeBonus then
-		Engine.ExecuteCommand("dota_range_display " .. Ability.GetCastRange(arc)+castRangeBonus)
-	else
-		Engine.ExecuteCommand("dota_range_display " .. 0)
-	end
 	if Menu.IsKeyDown(Zeus.comboKey) or Menu.IsKeyDown(Zeus.lastHitKey) or Menu.IsKeyDown(Zeus.harrasKey) then 
 		if target == nil then 
 			target = Input.GetNearestHeroToCursor(Entity.GetTeamNum(myHero), Enum.TeamType.TEAM_ENEMY)
+			if not target or target == 0 or not NPC.IsPositionInRange(target, Input.GetWorldCursorPos(), Menu.GetValue(Zeus.enemyInRange), 0) then
+				target = nil
+			end
 		end
 		if Zeus.Combo(myHero, target) == false then
 			target = nil
 		end
+	else
+		Engine.ExecuteCommand("dota_range_display " .. 0)
 	end
 	if Menu.IsEnabled(Zeus.TPcancel) then
-		local nimbus1 = NPC.GetAbility(myHero, "zuus_cloud")
 		if not nimbus1 then return end
 		if tp_position ~= nil then
 			local AllHeroes = Heroes.GetAll()
@@ -87,22 +90,29 @@ function Zeus.OnUpdate()
 			return
 		end
 	end
+	if Menu.IsEnabled(Zeus.killStealWithNimbus) then
+		Zeus.StealWithNimbus(nimbus1 ,myMana ,myHero)
+	end
 	if Menu.IsEnabled(Zeus.autoUlt) then 
 		wrath = NPC.GetAbility(myHero, "zuus_thundergods_wrath")
 		refresher = NPC.GetItem(myHero, "item_refresher_shard", true)
 		if not refresher then
 			refresher = NPC.GetItem(myHero, "item_refresher", true) 
 		end
-		if wrath and Ability.IsReady(wrath) and Ability.IsCastable(wrath,myMana) then 
+		if wrath and not Zeus.IsInAbilityPhase(myHero) then 
 			if Zeus.UltiKillCount(myHero, myMana, wrath, 1, Menu.GetValue(Zeus.KillForRefresher)) and Ability.IsReady(refresher) then 
-				Ability.CastNoTarget(wrath) 
-				Ability.CastNoTarget(refresher)
-				Ability.CastNoTarget(wrath)
-				return 
+				if Ability.IsReady(wrath) and Ability.IsCastable(wrath,myMana) then
+					Ability.CastNoTarget(wrath) 
+					Ability.CastNoTarget(refresher)
+					Ability.CastNoTarget(wrath)
+					return 
+				end
 			end
 			if Zeus.UltiKillCount(myHero, myMana, wrath, 0, Menu.GetValue(Zeus.KillForUlt)) then
-				Ability.CastNoTarget(wrath) 
-				return 
+				if Ability.IsReady(wrath) and Ability.IsCastable(wrath,myMana) then
+					Ability.CastNoTarget(wrath) 
+					return 
+				end
 			end
 		end
 	end
@@ -134,7 +144,8 @@ function Zeus.Combo(myHero, target)
  	local static = NPC.GetAbilityByIndex(myHero, 2)
  	wrath = NPC.GetAbility(myHero, "zuus_thundergods_wrath")
 	local nimbus = NPC.GetAbility(myHero, "zuus_cloud")
-	--             ITEMS                        --
+	--             ITEMS   
+	local blink = NPC.GetItem(myHero, "item_blink", true)                     --
 	local soulRing = NPC.GetItem(myHero, "item_soul_ring", true)
 	local atos = NPC.GetItem(myHero, "item_rod_of_atos", true)
 	local hex = NPC.GetItem(myHero, "item_sheepstick", true)
@@ -148,7 +159,6 @@ function Zeus.Combo(myHero, target)
 			if dagon then break end
 		end
 	end
-	castRangeBonus = NPC.GetCastRangeBonus(myHero) 
 	if soulRing and Menu.IsEnabled(Zeus.optionSoulRing) and Ability.IsReady(soulRing) and Entity.GetHealth(myHero) > 350 then 
 		Ability.CastNoTarget(soulRing)
 		myMana = myMana+150
@@ -159,6 +169,12 @@ function Zeus.Combo(myHero, target)
 		if NPC.IsEntityInRange(myHero, target, 2000) and Entity.IsAlive(target) then
 			local targetGuard = Zeus.IsHasGuard(target)
 			if targetGuard ~= "Immune" and targetGuard ~= "Lotus" then
+				if blink and Ability.IsReady(blink) and Menu.IsEnabled(Zeus.optionBlink) then
+					if NPC.IsEntityInRange(myHero, target, 1900) and not NPC.IsEntityInRange(myHero, target, 900) then
+						Ability.CastPosition(blink, Entity.GetAbsOrigin(target) + (Entity.GetAbsOrigin(myHero) - Entity.GetAbsOrigin(target)):Normalized():Scaled(600)) --Дальность до противника.
+						return true
+					end
+				end
 				if targetGuard == "Linkens" then 
 					if arc and Ability.IsCastable(arc, myMana) then
 						Ability.CastTarget(arc, target)
@@ -167,48 +183,50 @@ function Zeus.Combo(myHero, target)
 						return false
 					end
 				end	
-				if atos and Ability.IsCastable(atos, myMana) and Menu.IsEnabled(Zeus.optionAtos) and NPC.IsEntityInRange(myHero, target,Ability.GetCastRange(atos)+castRangeBonus) then
+				if atos and Ability.IsCastable(atos, myMana) and Menu.IsEnabled(Zeus.optionAtos)then
 					Ability.CastTarget(atos, target)
 					return true
 				end
-				if eblade and Ability.IsCastable(eblade, myMana) and Menu.IsEnabled(Zeus.optionEBlade) and NPC.IsEntityInRange(myHero, target,Ability.GetCastRange(eblade)+castRangeBonus) then
+				if eblade and Ability.IsCastable(eblade, myMana) and Menu.IsEnabled(Zeus.optionEBlade) then
 					Ability.CastTarget(eblade, target)
 					return true
 				end
-				if hex and Ability.IsCastable(hex, myMana) and Menu.IsEnabled(Zeus.optionHex) and NPC.IsEntityInRange(myHero, target,Ability.GetCastRange(hex)+castRangeBonus) then
+				if hex and Ability.IsCastable(hex, myMana) and Menu.IsEnabled(Zeus.optionHex) then
 					Ability.CastTarget(hex, target)
 					return true
 				end
-				if veil and Ability.IsCastable(veil, myMana) and Menu.IsEnabled(Zeus.optionDiscord) and NPC.IsEntityInRange(myHero, target,Ability.GetCastRange(veil)+castRangeBonus) then
+				if veil and Ability.IsCastable(veil, myMana) and Menu.IsEnabled(Zeus.optionDiscord) then
 					Ability.CastPosition(veil, Entity.GetAbsOrigin(target))
-					return true
-				end
-				if dagon and Ability.IsCastable(dagon, myMana) and Menu.IsEnabled(Zeus.optionDagon) and NPC.IsEntityInRange(myHero, target,Ability.GetCastRange(dagon)+castRangeBonus) then
-					Ability.CastTarget(dagon, target)
 					return true
 				end
 				if shiva and Ability.IsCastable(shiva, myMana) and Menu.IsEnabled(Zeus.optionShiva) then
 					Ability.CastNoTarget(shiva)
 					return true
 				end
-				if arc and Ability.IsCastable(arc, myMana) and Menu.IsEnabled(Zeus.optionArc) and NPC.IsEntityInRange(myHero, target,Ability.GetCastRange(arc)+castRangeBonus) and not Ability.IsInAbilityPhase(arc) then
+				if arc and Ability.IsCastable(arc, myMana) and Menu.IsEnabled(Zeus.optionArc) and not Zeus.IsInAbilityPhase(myHero) then
 					Ability.CastTarget(arc, target)
 					return true
 				end
-				if bolt and Ability.IsCastable(bolt, myMana) and Menu.IsEnabled(Zeus.optionBolt) and NPC.IsEntityInRange(myHero, target,Ability.GetCastRange(bolt)+castRangeBonus) and not Ability.IsInAbilityPhase(bolt)   then
+				if bolt and Ability.IsCastable(bolt, myMana) and Menu.IsEnabled(Zeus.optionBolt) and not Zeus.IsInAbilityPhase(myHero) then
 					Ability.CastTarget(bolt, target)
 					return true
 				end
-				if nimbus and Ability.IsCastable(nimbus, myMana) and Menu.IsEnabled(Zeus.optionNimbus) and not Ability.IsInAbilityPhase(nimbus) then
+				if dagon and Ability.IsCastable(dagon, myMana) and Menu.IsEnabled(Zeus.optionDagon) and not Zeus.IsInAbilityPhase(myHero) then
+					Ability.CastTarget(dagon, target)
+					return true
+				end
+				if nimbus and Ability.IsCastable(nimbus, myMana) and Menu.IsEnabled(Zeus.optionNimbus) and not Zeus.IsInAbilityPhase(myHero) then
 					Ability.CastPosition(nimbus, Entity.GetAbsOrigin(target))
 					return true
 				end	
+				Player.AttackTarget(Players.GetLocal(), myHero, target, false)
 			end		
 		end
 	end
 	----                 ARC LASTHIT               ----             
 	if Menu.IsKeyDown(Zeus.lastHitKey) and arc then 
-		local units = Entity.GetUnitsInRadius(myHero, Ability.GetCastRange(arc)+castRangeBonus, Enum.TeamType.TEAM_ENEMY)
+		Engine.ExecuteCommand("dota_range_display " .. Ability.GetCastRange(arc))
+		local units = Entity.GetUnitsInRadius(myHero, Ability.GetCastRange(arc), Enum.TeamType.TEAM_ENEMY)
 		if not units then return false end
 		for _, unit in pairs(units) do
 			if NPC.IsLaneCreep(unit) and Entity.GetHealth(unit)/NPC.GetMagicalArmorDamageMultiplier(unit)<=Ability.GetLevelSpecialValueFor(arc, "arc_damage") and not Ability.IsInAbilityPhase(arc) and Ability.IsCastable(arc, myMana) then
@@ -216,13 +234,13 @@ function Zeus.Combo(myHero, target)
 				return false
 			end
 		end
-	end
 	----                 ARC HARRAS               ---- 
-	if Menu.IsKeyDown(Zeus.harrasKey) then
-		if not target then return false end
-		if NPC.IsEntityInRange(myHero, target, Ability.GetCastRange(arc)+castRangeBonus) and Entity.IsAlive(target) then
+	elseif Menu.IsKeyDown(Zeus.harrasKey) and arc then
+		Engine.ExecuteCommand("dota_range_display " .. Ability.GetCastRange(arc))
+		local harrasTarget = Input.GetNearestHeroToCursor(Entity.GetTeamNum(myHero), Enum.TeamType.TEAM_ENEMY)
+		if harrasTarget and harrasTarget ~= 0 and NPC.IsEntityInRange(myHero, harrasTarget, Ability.GetCastRange(arc)) and Entity.IsAlive(harrasTarget) then
 			if arc and Ability.IsCastable(arc, myMana) and not Ability.IsInAbilityPhase(arc) then
-				Ability.CastTarget(arc, target)
+				Ability.CastTarget(arc, harrasTarget)
 				return false
 			end
 		end
@@ -248,7 +266,7 @@ function Zeus.UltiKillCount(myHero, myMana, ult, flag, kills)
 	for i,enemy in pairs(AllHeroes) do
 		if enemy ~= nil and Entity.IsHero(enemy) and not Entity.IsSameTeam(myHero, enemy) and Entity.IsAlive(enemy) and not Entity.IsDormant(enemy) and not NPC.IsIllusion(enemy) then 
 			if Zeus.IsHasGuard(enemy)~="Immune" then
-				local totalDmg = Zeus.GetTotalWrathDmg(enemy,ultDamage, myHero)
+				local totalDmg = Zeus.GetTotalDmg(enemy,ultDamage, myHero)
 				if Entity.GetHealth(enemy)+NPC.GetHealthRegen(enemy) <= totalDmg*ultCount then
 					if mana > myMana then return false end
 					count = count + 1
@@ -273,7 +291,40 @@ function Zeus.GetWrathDmg(ult,myMana,myHero)
 	return wrthDmg*intMultiplier
 end
 
-function Zeus.GetTotalWrathDmg(target,dmg, myHero)--ЧЕСТНО СПИЗДИЛ
+function Zeus.StealWithNimbus(nimbus,myMana,myHero)
+	if not myHero then return end
+	if not Ability.IsReady(nimbus) and not Ability.IsCastable(nimbus,myMana) or Ability.IsHidden(nimbus) then return end
+	local bolt = NPC.GetAbilityByIndex(myHero, 1)
+	local nimbusDmg = Zeus.GetNimbusDamage(bolt, myMana,myHero)
+
+	local AllHeroes = Heroes.GetAll()
+	for i,enemy in pairs(AllHeroes) do
+		if enemy ~= nil and Entity.IsHero(enemy) and not Entity.IsSameTeam(myHero, enemy) and Entity.IsAlive(enemy) and not Entity.IsDormant(enemy) and not NPC.IsIllusion(enemy) then 
+			if Zeus.IsHasGuard(enemy)~="Immune" then
+				local totalDmg = Zeus.GetTotalDmg(enemy,nimbusDmg, myHero)
+				if Entity.GetHealth(enemy)+NPC.GetHealthRegen(enemy) <= totalDmg then
+					Ability.CastPosition(nimbus, Entity.GetAbsOrigin(enemy))
+					return 
+				end
+			end
+		end
+	end
+
+end
+
+function Zeus.GetNimbusDamage(bolt,myMana,myHero)
+	if not bolt then return 0 end
+	if not Ability.IsReady(bolt) then return 0 end
+	if not Ability.IsCastable(bolt, myMana) then return 0 end
+	local boltLevel = Ability.GetLevel(bolt)
+	if boltLevel == 0 then return 0 end
+	local boltDmg = 50+(boltLevel*75)
+	local intellect = Hero.GetIntellectTotal(myHero)
+	local intMultiplier = ((0.089 * intellect) / 100) + 1
+	return boltDmg *intMultiplier
+end
+
+function Zeus.GetTotalDmg(target,dmg, myHero)
 	if not target or not myHero then return end
 	local totalDmg = (dmg * NPC.GetMagicalArmorDamageMultiplier(target))
 	local rainDrop = NPC.GetItem(target, "item_infused_raindrop", true)
@@ -323,6 +374,24 @@ function Zeus.GetTotalWrathDmg(target,dmg, myHero)--ЧЕСТНО СПИЗДИЛ
 	if NPC.HasModifier(target,"abaddon_aphotic_shield") then 
 		totalDmg = totalDmg - 200
 	end	
+	local pangoCrash = NPC.GetModifier(target, "modifier_pangolier_shield_crash_buff")
+	if pangoCrash and pangoCrash ~= 0 then
+		local pangoStack = Modifier.GetStackCount(pangoCrash)
+		totalDmg = totalDmg*((100 - pangoStack)/100)
+	end
+	local visageCloak = NPC.GetModifier(target, "modifier_visage_gravekeepers_cloak")
+	if visageCloak and visageCloak ~= 0 then
+		local visageStack = Modifier.GetStackCount(visageCloak)
+		totalDmg = totalDmg * (1 - (0.2*visageStack))
+	end
+	if NPC.HasModifier(target, "modifier_kunkka_ghost_ship_damage_absorb") then
+		totalDmg = totalDmg * 0.5
+	end
+	if NPC.HasModifier(target, "modifier_shadow_demon_soul_catcher") then
+		local soulCatcherLvl = Ability.GetLevel(Modifier.GetAbility(NPC.GetModifier(target, "modifier_shadow_demon_soul_catcher")))
+		Log.Write((1.1 + (0.1 * soulCatcherLvl)))
+		totalDmg = totalDmg * (1.1 + (0.1 * soulCatcherLvl))
+	end
 	return totalDmg
 end
 
@@ -357,7 +426,8 @@ function Zeus.IsHasGuard(npc)
 		NPC.HasModifier(npc,"modifier_abaddon_borrowed_time") or
 		NPC.HasModifier(npc,"modifier_dark_willow_shadow_realm_buff") or
 		NPC.HasModifier(npc,"modifier_dazzle_shallow_grave") or 
-		NPC.HasModifier(npc,"modifier_special_bonus_spell_block") then
+		NPC.HasModifier(npc,"modifier_special_bonus_spell_block") or
+		NPC.HasModifier(npc,"modifier_skeleton_king_reincarnation_scepter_active") then
 			guarditis = "Immune"
 	end
 	if NPC.HasModifier(npc,"modifier_legion_commander_duel") then
@@ -383,5 +453,32 @@ function Zeus.IsHasGuard(npc)
 	if aeon_disk and Ability.IsReady(aeon_disk) then guarditis = "Immune" end
 	return guarditis
 end
+
+function Zeus.IsInAbilityPhase(myHero)   --из утилити
+
+  	if not myHero then return false end
+
+  	local myAbilities = {}
+
+  	for i = 0, 10 do
+  		local ability = NPC.GetAbilityByIndex(myHero, i)
+    	if ability and Entity.IsAbility(ability) and Ability.GetLevel(ability) > 0 then
+    		table.insert(myAbilities, ability)
+    	end
+  	end
+
+  	if #myAbilities < 1 then return false end
+
+  	for _, v in ipairs(myAbilities) do
+    	if v then
+      		if Ability.IsInAbilityPhase(v) then
+        		return true
+      		end
+    	end
+  	end
+  	return false
+end
+
+
 
 return Zeus
