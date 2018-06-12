@@ -5,6 +5,7 @@ axe.blinkRadius = Menu.AddOptionBool({"Hero Specific", "Axe"}, "Range of the Bli
 axe.optionAutoUltEnable = Menu.AddOptionBool({"Hero Specific", "Axe", "Auto Culling"}, "Enable", false)
 axe.customRange = Menu.AddOptionSlider({"Hero Specific", "Axe", "Auto Culling"}, "Range to Target", 120, 300, 120)
 axe.optionKey = Menu.AddKeyOption({"Hero Specific", "Axe"}, "Combo Key", Enum.ButtonCode.KEY_Z)
+axe.comboType = Menu.AddOptionCombo({"Hero Specific", "Axe"}, "Combo Type", {"Blink+Call first", "Items first"}, 1)
 axe.optionEnableBlink = Menu.AddOptionBool({"Hero Specific", "Axe", "Combo"}, "Blink", false)
 axe.optionEnableCrimson = Menu.AddOptionBool({"Hero Specific", "Axe", "Combo"}, "Crimson Guard", false)
 axe.optionEnableHood = Menu.AddOptionBool({"Hero Specific", "Axe", "Combo"}, "Hood of Defiance", false)
@@ -29,8 +30,12 @@ function axe.OnUpdate()
 	if NPC.GetUnitName(axe.myHero) ~= "npc_dota_hero_axe" then return end
 	if not Entity.IsAlive(axe.myHero) or NPC.IsStunned(axe.myHero) or NPC.IsSilenced(axe.myHero)  then return end
 	if Menu.IsKeyDown(axe.optionKey) then 
-		enemy1 = Input.GetWorldCursorPos()
-		axe.Combo(axe.myHero, enemy1)
+    if enemy == nil then
+		  enemy1 = Input.GetWorldCursorPos()
+    end
+		if axe.Combo(axe.myHero, enemy1) == false then
+      enemy = nil
+    end
 	end
 	if  Menu.IsEnabled(axe.blinkRadius) then
 		Engine.ExecuteCommand("dota_range_display " .. 1200)
@@ -80,68 +85,68 @@ function axe.Combo(myHero,enemy)
 	if range > 1199  then return end
     -- if not NPC.IsEntityInRange(myHero, enemy, callRange) then
     local myMana = NPC.GetMana(myHero)
-    if NPC.HasModifier(myHero, "modifier_pugna_nether_ward_aura") then 
+    if NPC.HasModifier(myHero, "modifier_pugna_nether_ward_aura") or Menu.GetValue(axe.comboType) == 0 then 
     if blink and Menu.IsEnabled(axe.optionEnableBlink) and Ability.IsReady(blink) and Ability.IsReady(call) and Ability.IsCastable(call, myMana) then
         Ability.CastPosition(blink,enemy)
         enemy1 = nil
         flagForCall = true
-     -- return true
+        return true
     end
     if flagForCall then
       Ability.CastNoTarget(call)
       flagForCall = false
       enemy1 = nil
-      --return false
+      return false
     end
     end
     if Blademail and Menu.IsEnabled(axe.optionEnableBlademail) and Ability.IsCastable(Blademail, myMana) then
       	Ability.CastNoTarget(Blademail)
-      --	return true
+      	return true
     end
     if bkb and Menu.IsEnabled(axe.optionEnableBkb) and Ability.IsCastable(bkb, myMana) then
       	Ability.CastNoTarget(bkb)
-      --	return true
+      	return true
     end
     if lotus and Menu.IsEnabled(axe.optionEnableLotus) and Ability.IsCastable(lotus, myMana) then
       	Ability.CastTarget(lotus, myHero)
-      --	return true
+      	return true
     end
     if mjolnir and Menu.IsEnabled(axe.optionEnableMjolnir) and Ability.IsCastable(mjolnir, myMana) then
       	Ability.CastTarget(mjolnir, myHero)
-      --	return true
+      	return true
     end
     if pipe and Menu.IsEnabled(axe.optionEnablePipe) and Ability.IsCastable(pipe, myMana) then
       	Ability.CastNoTarget(pipe)
-      --	return true
+      	return true
     end
     if crimson and Menu.IsEnabled(axe.optionEnableCrimson) and Ability.IsCastable(crimson, myMana) then
       	Ability.CastNoTarget(crimson)
-      	--return true
+      	return true
     end
     if hood and Menu.IsEnabled(axe.optionEnableHood) and Ability.IsCastable(hood, myMana) then
       	Ability.CastNoTarget(hood)
-      --	return true
+      	return true
     end
     if shiva and Menu.IsEnabled(axe.optionEnableShiva) and Ability.IsCastable(shiva, myMana) then
       	Ability.CastNoTarget(shiva)
-      --	return true
+      	return true
     end
 
     if blink and Menu.IsEnabled(axe.optionEnableBlink) and Ability.IsReady(blink) and Ability.IsReady(call) and Ability.IsCastable(call, myMana) then
       	Ability.CastPosition(blink,enemy)
       	enemy1 = nil
       	flagForCall = true
-     --	return true
+     	return true
     end
     if flagForCall then
   		Ability.CastNoTarget(call)
   		flagForCall = false
   		enemy1 = nil
-   		--return false
+   		return false
    	end
    	enemy1 = nil
    	flagForCall = false
-    return 
+    return false
 end
 
 function axe.checkProtection(enemy)
