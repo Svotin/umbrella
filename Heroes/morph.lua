@@ -208,7 +208,9 @@ function morph.IsHasGuard(npc) --ЧЕСТНО СПИЗДИЛ
 		NPC.HasModifier(npc,"modifier_dark_willow_shadow_realm_buff") or
 		NPC.HasModifier(npc,"modifier_dazzle_shallow_grave") or 
 		NPC.HasModifier(npc,"modifier_special_bonus_spell_block") or
-		NPC.HasModifier(npc,"modifier_skeleton_king_reincarnation_scepter_active") then
+		NPC.HasModifier(npc,"modifier_skeleton_king_reincarnation_scepter_active") or
+		NPC.HasModifier(npc,"modifier_eul_cyclone") or
+		NPC.HasModifier(npc,"modifier_brewmaster_storm_cyclone") then	
 			guarditis = "Immune"
 	end
 	if NPC.HasModifier(npc,"modifier_legion_commander_duel") then
