@@ -21,7 +21,6 @@ axe.optionEnableShiva = Menu.AddOptionBool({"Hero Specific", "Axe", "Combo"}, "S
 AllHeroes = nil
 axe.myHero = nil
 enemy1 = nil
-Font = Renderer.LoadFont("Tahoma", 22, Enum.FontWeight.BOLD)
 flagForCall = false  --костыль
 axe.sleepers = {}
 
@@ -42,7 +41,9 @@ function axe.OnUpdate()
 		if axe.Combo(axe.myHero, enemy1) == false then
       enemy1 = nil
     end
-	end
+	else
+    enemy1 = nil
+  end
 	if  Menu.IsEnabled(axe.blinkRadius) then
 		Engine.ExecuteCommand("dota_range_display " .. 1200)
 	else
@@ -282,6 +283,15 @@ function axe.IsInAbilityPhase(myHero)   --из утилити
       end
     end
     return false
+end
+
+function axe.OnMenuOptionChange(option, oldValue, newValue)
+  if not Menu.IsEnabled(axe.optionEnable) then return end
+  if option == axe.blinkType or option == axe.comboType then
+    axe.myHero = nil
+    enemy1 = nil
+    flagForCall = false 
+  end
 end
 
 return axe
