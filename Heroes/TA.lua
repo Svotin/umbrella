@@ -1,11 +1,17 @@
 TA = {}
 
 TA.option = Menu.AddOptionBool({"Hero Specific", "Templar Assassin"}, "Enable", false)
-TA.optionBlink = Menu.AddOptionBool({"Hero Specific", "Templar Assassin"}, "Blink Dagger", false)
+TA.optionBlink = Menu.AddOptionBool({"Hero Specific", "Templar Assassin","Items"}, "Blink Dagger", false)
 TA.HarrasKey = Menu.AddKeyOption({"Hero Specific", "Templar Assassin"}, "Harras Key", Enum.ButtonCode.KEY_C)
 TA.comboKey = Menu.AddKeyOption({"Hero Specific", "Templar Assassin"}, "Combo Key", Enum.ButtonCode.KEY_V)
 TA.harrasRange = Menu.AddOptionSlider({"Hero Specific", "Templar Assassin"}, "Harras Range", 50, 600, 100)
 --TA.optionHints =  Menu.AddOptionBool({"Hero Specific", "Templar Assassin"}, "Show Attack Hints", false)
+
+TA.Orchid = Menu.AddOptionBool({"Hero Specific", "Templar Assassin", "Items"}, "Orchid/Bloodthorn", false)
+TA.Nullifier = Menu.AddOptionBool({"Hero Specific", "Templar Assassin", "Items"}, "Nullifier", false)
+TA.BKB = Menu.AddOptionBool({"Hero Specific", "Templar Assassin", "Items"}, "Black King Bar", false)
+
+
 
 
 myHero = nil
@@ -14,6 +20,7 @@ enemy = nil
 TA.lastTick = 0
 TA.itemDelay = 0
 TA.lastItemTick = 0	
+flagForMeld = false
 
 
 function TA.OnUpdate()
@@ -42,6 +49,12 @@ function TA.TACombo(myHero, enemy)
 	local trap = NPC.GetAbility(myHero, "templar_assassin_trap")
 
 	local blink = NPC.GetItem(myHero, "item_blink", true)
+	local nullifier = NPC.GetItem(myHero, "item_nullifier", true)
+	local orchid = NPC.GetItem(myHero, "item_orchid", true)
+	if not orchid then
+		orchid = NPC.GetItem(myHero, "item_bloodthorn", true)
+	end
+	local bkb = NPC.GetItem(myHero, "item_black_king_bar", true)
 
 	local psiBlades = NPC.GetAbility(myHero, "templar_assassin_psi_blades")
 
@@ -92,6 +105,15 @@ function TA.TACombo(myHero, enemy)
 				end
 			end
 		else
+			if bkb and Ability.IsReady(bkb) and Menu.IsEnabled(TA.BKB) then
+				Ability.CastNoTarget(bkb)
+			end
+			if nullifier and Ability.IsCastable(nullifier, myMana) and Menu.IsEnabled(TA.Nullifier) then
+				Ability.CastTarget(nullifier,enemy)
+			end
+			if orchid and Ability.IsCastable(orchid,myMana) and Menu.IsEnabled(TA.Orchid) then
+				Ability.CastTarget(orchid,enemy)
+			end
 			if TA.SleepReady(0.3) and meld and Ability.IsCastable(meld, myMana) then
 				TA.noItemCastFor(0.1)
 				Ability.CastNoTarget(meld)
@@ -347,7 +369,5 @@ function TA.castPrediction(myHero, enemy, adjustmentVariable)
     end
   end
 end
-
-
 
 return TA
