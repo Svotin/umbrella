@@ -192,7 +192,7 @@ function TA.TApsiBladesSpillBestPos(myHero, enemy, myAttackRange, searchRange)
 			
 		for _, targetNPC in ipairs(npcs) do
 			if targetNPC then
-				if Entity.IsNPC(targetNPC) and not Entity.IsDormant(targetNPC) and (NPC.IsCreep(targetNPC) or NPC.IsLaneCreep(targetNPC) or NPC.IsNeutral(targetNPC)) and Entity.IsAlive(targetNPC) and not NPC.IsRunning(targetNPC) then
+				if Entity.IsNPC(targetNPC) and not Entity.IsDormant(targetNPC) and (NPC.IsCreep(targetNPC) or NPC.IsLaneCreep(targetNPC) or NPC.IsNeutral(targetNPC)) and Entity.IsAlive(targetNPC) and not NPC.IsRunning(targetNPC) and not NPC.IsWaitingToSpawn(targetNPC)then
 					local myDisToNPC = (Entity.GetAbsOrigin(myHero) - Entity.GetAbsOrigin(targetNPC)):Length()
 					local myDisToEnemy = (Entity.GetAbsOrigin(myHero) - enemyPos):Length()
 					local disEnemyToNPC = (enemyPos - Entity.GetAbsOrigin(targetNPC)):Length()
@@ -242,7 +242,7 @@ function TA.TApsiBladesSpill(myHero, enemy, myAttackRange)
 			
 		for _, targetNPC in ipairs(npcs) do
 			if targetNPC then
-				if Entity.IsNPC(targetNPC) and not Entity.IsDormant(targetNPC) and (NPC.IsCreep(targetNPC) or NPC.IsLaneCreep(targetNPC) or NPC.IsNeutral(targetNPC)) and Entity.IsAlive(targetNPC) then
+				if Entity.IsNPC(targetNPC) and not Entity.IsDormant(targetNPC) and (NPC.IsCreep(targetNPC) or NPC.IsLaneCreep(targetNPC) or NPC.IsNeutral(targetNPC)) and Entity.IsAlive(targetNPC) and not NPC.IsWaitingToSpawn(targetNPC) then
 					if TA.isEnemyInSpillRange(myHero, targetNPC, enemy, spillRange) == true then
 						spillNPC = targetNPC
 					end
