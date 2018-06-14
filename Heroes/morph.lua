@@ -6,44 +6,24 @@ morph.AutoKill = Menu.AddOptionBool({"Hero Specific", "Morphling", "EBlade Auto 
 morph.AutoKillKey = Menu.AddKeyOption({"Hero Specific",  "Morphling", "EBlade Auto Kill"}, "Toggle Key", Enum.ButtonCode.KEY_0)
 morph.Display = Menu.AddOptionBool({"Hero Specific", "Morphling"}, "Damage Info", false)
 morph.AutoShift = Menu.AddOptionBool({"Hero Specific", "Morphling","Auto Shift"}, "Enable", false)
-morph.AdditionalAbilities = Menu.AddOptionBool({"Hero Specific", "Morphling","Auto Shift"}, "[BETA]Additional Abilities", false)
+morph.optionHeroMorphHPBalanceDeviation = Menu.AddOptionSlider({"Hero Specific", "Morphling", "Auto Shift" }, "HP Deviation", 50, 250, 50)
+
+morph.AutoShiftKey = Menu.AddKeyOption({"Hero Specific",  "Morphling", "Auto Shift"}, "Toggle Key", Enum.ButtonCode.KEY_8)
+morph.optionHeroMorphDrawBoardXPos = Menu.AddOptionSlider({ "Hero Specific", "Morphling","Auto Shift" }, "X-Pos Adjustment", -500, 500, 10)
+morph.optionHeroMorphDrawBoardYPos = Menu.AddOptionSlider({ "Hero Specific", "Morphling","Auto Shift"}, "Y-Pos Adjustment", -500, 760, 10)
+
 
 morph.myHero = nil
 morph.players = {}
 Font = Renderer.LoadFont("Tahoma", 20, Enum.FontWeight.BOLD)
 FontForStatus = Renderer.LoadFont("Tahoma", 17, Enum.FontWeight.BOLD)
 morph.localDmg = 0
+morph.Toggler = true
+morph.MorphBalanceToggler = true
+morph.MorphBalanceTimer = 0
+morph.MorphBalanceSelectedHP = 0
+morph.MorphBalanceSelected = 0
 
-morph.defaultAbilities = {
-	{"npc_dota_hero_axe", "axe_berserkers_call", 300, false},   		--false - пробивает через бкб
-	{"npc_dota_hero_tidehunter", "tidehunter_ravage", 1250, true},      --true - не пробивает бкб
-	{"npc_dota_hero_enigma", "enigma_black_hole", 720, false},
-	{"npc_dota_hero_magnataur", "magnataur_reverse_polarity", 430, false},
-	{"npc_dota_hero_slardar", "slardar_slithereen_crush", 355, true},
-	{"npc_dota_hero_centaur", "centaur_hoof_stomp", 345, true},
-	{"npc_dota_hero_earthshaker" ,"earthshaker_fissure", 300, true},
-	{"npc_dota_hero_earthshaker" ,"earthshaker_enchant_totem", 300, true},
-	{"npc_dota_hero_faceless_void", "faceless_void_chronosphere", 1100, false}
-}
-
-morph.additionalAbilities = {
-	{"npc_dota_hero_batrider", "batrider_flaming_lasso", 170},
-	{"npc_dota_hero_legion_commander", "legion_commander_duel", 150},
-	{"npc_dota_hero_pudge", "pudge_dismember", 160},
-	{"npc_dota_hero_doom_bringer", "doom_bringer_doom", 650},
-	{"npc_dota_hero_bane", "bane_fiends_grip", 625},
-	{"npc_dota_hero_beastmaster", "beastmaster_primal_roar", 600},
-}
-
-morph.projectileAbilities = {
-	{"npc_dota_hero_alchemist", 900},
-	{"npc_dota_hero_sven", 1000},
-	{"npc_dota_hero_chaos_knight", 1000},
-	{"npc_dota_hero_skeleton_king", 1000},
-	{"npc_dota_hero_vengefulspirit", 1250},
-	{"npc_dota_hero_dragon_knight", 1600},
-	{"npc_dota_hero_windrunner", 1650}
-}
 function morph.OnUpdate()
 	if not Menu.IsEnabled(morph.optionEnable) or not Engine.IsInGame() or not Heroes.GetLocal() then 
 		for i = 0, 10 do
@@ -54,7 +34,15 @@ function morph.OnUpdate()
     	end return 
     end
 	morph.myHero = Heroes.GetLocal()
+	local FHeroes = Heroes.GetAll()
 	if NPC.GetUnitName(morph.myHero) ~= "npc_dota_hero_morphling" then return end
+	if Menu.IsKeyDownOnce(morph.AutoShiftKey) then
+		if Menu.IsEnabled(morph.AutoShift) then
+			Menu.SetEnabled(morph.AutoShift, false)
+		else 
+			Menu.SetEnabled(morph.AutoShift, true)
+		end		
+	end
 	if Menu.IsKeyDownOnce(morph.AutoKillKey) then
 		if Menu.IsEnabled(morph.AutoKill) then
 			Menu.SetEnabled(morph.AutoKill, false)
@@ -62,46 +50,8 @@ function morph.OnUpdate()
 			Menu.SetEnabled(morph.AutoKill, true)
 		end		
 	end
-	local FHeroes = Heroes.GetAll()
 	if Menu.IsEnabled(morph.AutoShift) then
-		if not Entity.IsAlive(morph.myHero) or NPC.IsStunned(morph.myHero) or NPC.IsSilenced(morph.myHero) then return end
-		local shift = NPC.GetAbilityByIndex(morph.myHero, 4)
-		for _,v in pairs(FHeroes) do
-			if v and Entity.IsHero(v) and Entity.IsAlive(v) and not Entity.IsSameTeam(morph.myHero, v) and not Entity.IsDormant(v) and not NPC.IsIllusion(v) then
-				for i,k in pairs(morph.defaultAbilities) do
-					if NPC.GetUnitName(v) == k[1] then
-						local p1 = NPC.GetAbility(v, k[2])
-						if p1 ~= (nil or 0) and Ability.IsInAbilityPhase(p1) then								 
-							local p2 = Ability.GetCastPoint(p1)
-							if NPC.IsEntityInRange(morph.myHero, v, k[3]) then
-								if NPC.HasState(morph.myHero,Enum.ModifierState.MODIFIER_STATE_MAGIC_IMMUNE) and k[4] then 
-									return 
-								end
-								morph.toggleShift(morph.myHero)
-								return
-							end
-						end
-					end
-				end	
-				if Menu.IsEnabled(morph.AdditionalAbilities) then
-					for i,k in pairs(morph.additionalAbilities) do
-						if NPC.GetUnitName(v) == k[1] then
-							local p1 = NPC.GetAbility(v, k[2])
-							if p1 ~= (nil or 0) and Ability.IsInAbilityPhase(p1) then								 
-								local p2 = Ability.GetCastPoint(p1)
-								if NPC.IsEntityInRange(morph.myHero, v, k[3]) and NPC.FindFacingNPC(v)==morph.myHero then
-									if NPC.IsLinkensProtected(morph.myHero) then 
-										return 
-									end
-									morph.toggleShift(morph.myHero)
-									return
-								end
-							end
-						end
-					end
-				end	
-			end
-		end
+		morph.MorphBalaceHP(morph.myHero)
 	end
 	if Menu.IsEnabled(morph.AutoKill) or Menu.IsEnabled(morph.Display) then
 		for i = 1, Heroes.Count() do
@@ -361,36 +311,20 @@ function morph.OnDraw()
 			end
 		end
 	end
-end
-
-function morph.OnProjectile(projectile)
-	morph.myHero = Heroes.GetLocal()
-	if morph.myHero == nil or NPC.GetUnitName(morph.myHero) ~= "npc_dota_hero_morphling" then return end 
-	if not Menu.IsEnabled(morph.AutoShift) or not Menu.IsEnabled(morph.optionEnable) then return end
-	local target = projectile.target
-	local source = nil
-	if Entity.IsEntity(projectile.source) then
-		source = NPC.GetUnitName(projectile.source)
-	end
-	local speed = projectile.moveSpeed
-	if target == morph.myHero then
-		for k,hero in pairs(morph.projectileAbilities) do
-			if source == hero[1] and speed == hero[2] and not NPC.IsLinkensProtected(morph.myHero) then
-				morph.toggleShift(morph.myHero)
-				return
-			end 
+	if Menu.IsEnabled(morph.AutoShift) then
+			morph.MorphDrawBalanceBoard(morph.myHero)
 		end
-	end
 end
 
-function  morph.toggleShift(myHero)
-	local shift = NPC.GetAbilityByIndex(myHero, 4)
-	if not shift then return end
-	if not Ability.GetToggleState(shift) then
-		Ability.Toggle(shift)
-				return
-	end
-end
+
+-- function  morph.toggleShift(myHero)
+-- 	local shift = NPC.GetAbilityByIndex(myHero, 4)
+-- 	if not shift then return end
+-- 	if not Ability.GetToggleState(shift) then
+-- 		Ability.Toggle(shift)
+-- 				return
+-- 	end
+-- end
 
 function morph.OnPrepareUnitOrders(orders) --xenohack
 	if not orders then return true end
@@ -415,6 +349,192 @@ function morph.OnPrepareUnitOrders(orders) --xenohack
     Player.PrepareUnitOrders(orders.player, orders.order, nil, pos, orders.ability, orders.orderIssuer, orders.npc, orders.queue, orders.showEffects)
 
     return false
+end
+
+function morph.MorphBalaceHP(myHero)
+
+	if not myHero then return end
+	if not morph.MorphBalanceToggler then return end
+	if os.clock() - morph.MorphBalanceTimer < 0.1 then return end
+
+	if NPC.IsSilenced(myHero) then return end
+	if NPC.IsStunned(myHero) then return end
+	local targetHP
+	if morph.MorphBalanceSelectedHP > 0 then
+		targetHP = morph.MorphBalanceSelectedHP
+	end
+
+	if not targetHP then return end
+
+	local morphAGI = NPC.GetAbility(myHero, "morphling_morph_agi")
+	local morphSTR = NPC.GetAbility(myHero, "morphling_morph_str")
+
+		if not morphAGI or not morphSTR then return end
+		if Ability.GetLevel(morphAGI) < 1 then return end
+		if NPC.HasModifier(myHero, "modifier_morphling_replicate") then return end
+
+	local myHP = Entity.GetHealth(myHero)
+	local myMAXHP = Entity.GetMaxHealth(myHero)
+
+	local shouldToggleAGI = false
+	local shouldToggleStr = false
+	local allowedDeviation = Menu.GetValue(morph.optionHeroMorphHPBalanceDeviation)
+
+	if NPC.HasModifier(myHero, "modifier_fountain_aura_buff") then return end
+		if targetHP - myHP >= allowedDeviation then
+			if Hero.GetAgility(myHero) > 1 then
+				shouldToggleStr = true
+			else
+				shouldToggleStr = false
+			end
+		else
+			shouldToggleStr = false
+		end
+
+		if myMAXHP - targetHP >= allowedDeviation and (myHP - targetHP) >= allowedDeviation then
+			if Hero.GetStrength(myHero) > 1 then
+				shouldToggleAGI = true
+			else
+				shouldToggleAGI = false
+			end
+		else
+			shouldToggleAGI = false
+		end
+
+	-- else
+	-- 	if myMAXHP - myHP <= 50 then
+	-- 		if myMAXHP - targetHP >= 50 then
+	-- 			shouldToggleAGI = true
+	-- 		elseif targetHP - myHP >= 50 then
+	-- 			shouldToggleStr = true
+	-- 		else
+	-- 			shouldToggleAGI = false
+	-- 			shouldToggleStr = false
+	-- 		end
+	-- 	end
+	-- end
+	
+
+	if shouldToggleStr then
+		if not Ability.GetToggleState(morphSTR) then
+			Ability.Toggle(morphSTR)
+			morph.MorphBalanceTimer = os.clock()
+			return
+		end
+	else
+		if Ability.GetToggleState(morphSTR) then
+			Ability.Toggle(morphSTR)
+			morph.MorphBalanceTimer = os.clock()
+			return
+		end
+	end
+
+	if shouldToggleAGI then
+		if not Ability.GetToggleState(morphAGI) then
+			Ability.Toggle(morphAGI)
+			morph.MorphBalanceTimer = os.clock()
+			return
+		end
+	else
+		if Ability.GetToggleState(morphAGI) then
+			Ability.Toggle(morphAGI)
+			morph.MorphBalanceTimer = os.clock()
+			return
+		end
+	end
+end
+
+function morph.MorphDrawBalanceBoard(myHero)
+
+	if not myHero then return end
+	if not Menu.IsEnabled(morph.AutoShift) then return end
+
+	local maxMorphAGI = math.floor(Hero.GetAgility(myHero))
+	local maxMorphSTR = math.floor(Hero.GetStrength(myHero))-1
+	local currentMAXHP = Entity.GetMaxHealth(myHero)
+
+	local minHP = currentMAXHP - maxMorphSTR * 18 
+	local maxHP = currentMAXHP + maxMorphAGI * 18
+
+	local w, h = Renderer.GetScreenSize()
+	Renderer.SetDrawColor(255, 255, 255)
+
+	local startX = w - 300 - Menu.GetValue(morph.optionHeroMorphDrawBoardXPos)
+	local startY = 300 + Menu.GetValue(morph.optionHeroMorphDrawBoardYPos)
+	
+
+		
+	-- black background
+	Renderer.SetDrawColor(0, 0, 0, 150)
+	Renderer.DrawFilledRect(startX-1, startY, 202, 25)
+--Log.Write("lol")
+	-- black border
+	Renderer.SetDrawColor(0, 0, 0, 255)
+	Renderer.DrawOutlineRect(startX-1, startY, 202, 25)
+
+	-- min/max HP
+	Renderer.SetDrawColor(0, 255, 0, 150)
+	Renderer.DrawText(Font, startX-25, startY-25, minHP, 0)
+	Renderer.SetDrawColor(255, 0, 0, 150)
+	Renderer.DrawText(Font, startX+175, startY-25, maxHP, 0)
+
+	-- colored rect
+	for i = 1, 20 do
+		Renderer.SetDrawColor(25 + i*10, 230 - i*10, 0, 150)
+		Renderer.DrawFilledRect(startX + (i-1)*10 , startY+1, 10, 23)
+	end
+
+	-- hovering rects
+	local hoveringTable = {}
+	if next(hoveringTable) == nil then
+		for i = 1, 20 do
+			hoveringTable[i] = Input.IsCursorInRect(startX + (i-1)*10 , startY+1, 10, 23)
+		end
+	end
+
+	-- on/off rects
+	Renderer.SetDrawColor(0, 0, 0, 255)
+	Renderer.DrawOutlineRect(startX+75, startY-25, 50, 20)
+	Renderer.SetDrawColor(0, 0, 0, 150)
+	Renderer.DrawFilledRect(startX+75, startY-25, 50, 20)
+		local togglerHovering = Input.IsCursorInRect(startX+75, startY-25, 50, 20)
+		if togglerHovering and Input.IsKeyDownOnce(Enum.ButtonCode.MOUSE_LEFT) then
+			morph.MorphBalanceToggler = not morph.MorphBalanceToggler
+		end
+
+	if morph.MorphBalanceToggler then
+		Renderer.SetDrawColor(0, 255, 0, 150)
+		Renderer.DrawText(Font, startX+100, startY-27, "ON", 0)
+	else
+		Renderer.SetDrawColor(255, 0, 0, 150)
+		Renderer.DrawText(Font, startX+100, startY-27, "OFF", 0)
+	end
+
+	local HPsteps = math.floor((maxHP - minHP) / 20)
+
+	if Input.IsKeyDownOnce(Enum.ButtonCode.MOUSE_LEFT) then
+		for i, v in ipairs(hoveringTable) do
+			if hoveringTable[1] == true then
+				morph.MorphBalanceSelectedHP = minHP
+				morph.MorphBalanceSelected = 1
+			elseif hoveringTable[20] == true then
+				morph.MorphBalanceSelectedHP = maxHP
+				morph.MorphBalanceSelected = 20
+			else
+				if v == true then
+					morph.MorphBalanceSelectedHP = minHP + HPsteps*i
+					morph.MorphBalanceSelected = i
+				end
+			end		
+		end
+	end
+
+	if morph.MorphBalanceSelected > 0 then
+		Renderer.SetDrawColor(0, 0, 0, 200)
+		Renderer.DrawFilledRect(startX+3+10*(morph.MorphBalanceSelected-1), startY, 4, 30)
+		Renderer.DrawText(Font, startX+3+10*(morph.MorphBalanceSelected-1), startY+30, morph.MorphBalanceSelectedHP, 0)
+	end
+
 end
 
 return morph
