@@ -291,13 +291,6 @@ function axe.IsInAbilityPhase(myHero)   --из утилити
 end
 
 function axe.OnMenuOptionChange(option, oldValue, newValue)
-                       ---- INIT ----
-  if not Menu.IsEnabled(axe.optionEnable) then return end
-  if option == axe.blinkType or option == axe.comboType then
-    enemy1 = nil
-    flagForCall = false 
-  end
-  ------------------------------------------------------------
   if option == axe.cullingRange then
     if newValue then
       Menu.SetEnabled(axe.blinkRadius, false)
@@ -307,6 +300,12 @@ function axe.OnMenuOptionChange(option, oldValue, newValue)
     if newValue then
       Menu.SetEnabled(axe.cullingRange, false)
     end
+  end
+  ---- INIT ----
+  if not Menu.IsEnabled(axe.optionEnable) then return end
+  if option == axe.blinkType or option == axe.comboType then
+    enemy1 = nil
+    flagForCall = false 
   end
 end
 
