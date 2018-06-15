@@ -16,10 +16,10 @@ time_ultimate_to_point = 0
 damage = 0
 
 function StormUltCalculator.OnGameStart()
-	StormUltCalculator.init()
+	StormUltCalculator.Zeroing()
 end
 function StormUltCalculator.OnGameStart()
-	StormUltCalculator.init()
+	StormUltCalculator.Zeroing()
 end
 
 function StormUltCalculator.OnUpdate()
@@ -80,7 +80,7 @@ function StormUltCalculator.DrawTextCentered(p1, p2, p3, p4, p5)
 	return Renderer.DrawText(p1, p2 - wide/2 , p3 - tall/2, p4)
 end
 
-function StormUltCalculator.init()
+function StormUltCalculator.Zeroing()
 	w, h = 0
 	x = 0
 	y = 0
