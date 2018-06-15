@@ -26,13 +26,19 @@ function FS.OnPrepareUnitOrders(orders)
 			local myHero = Heroes.GetLocal()
 			local mousePos = Input.GetWorldCursorPos()
 	    	local enemy = Input.GetNearestHeroToCursor(Entity.GetTeamNum(myHero), Enum.TeamType.TEAM_ENEMY)
-
-			if not enemy or enemy == 0 then FlagForBreak = true break end
+			if not enemy or enemy == 0 then 
+				FlagForBreak = true 
+				break 
+			end
 			if h[5] then
 				mousePos = Entity.GetAbsOrigin(myHero)
 			end
-			if NPC.IsPositionInRange(enemy, mousePos, h[3], 0) then return true else FlagForBreak = true return false end
-			break	
+			if NPC.IsPositionInRange(enemy, mousePos, h[3], 0) then 
+				return true 
+			else 
+				FlagForBreak = true 
+				return false 
+			end	
 		end
 	end
 	if FlagForBreak then return false end
@@ -41,7 +47,7 @@ end
 
 
 function FS.OnUpdate()
-	if not Menu.IsEnabled(FS.optionEnable) then return true end
+	if not Menu.IsEnabled(FS.optionEnable) then return end
 	if not Menu.IsKeyDown(FS.optionKey) then return end
 
 	local myHero = Heroes.GetLocal()
@@ -56,12 +62,15 @@ function FS.OnUpdate()
 			if ability and Ability.IsCastable(ability, myMana) then
 				if h[5] then
 					Ability.CastNoTarget(ability)
+					return
 				else
 					Ability.CastPosition(ability, mousePos)
+					return
 				end
 			end
 		end
 	end
+	return
 end
 
 return FS
