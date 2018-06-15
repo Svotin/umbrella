@@ -406,7 +406,6 @@ function morph.OnProjectile(projectile)
 		source = NPC.GetUnitName(projectile.source)	
 	end	
 	if projectile.target ~= morph.myHero then return end
-	Log.Write(NPC.GetUnitName(projectile.target))
 	local name = projectile.name	
 	for k,hero in pairs(morph.projectileAbilities) do	
 		if source == hero[1] and name == hero[2] and not NPC.IsLinkensProtected(morph.myHero) then	
