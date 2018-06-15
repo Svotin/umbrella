@@ -33,7 +33,7 @@ function axe.OnUpdate()
 	if Menu.IsKeyDown(axe.optionKey) then 
     if enemy1 == nil then
       if Menu.GetValue(axe.blinkType) == 0 then
-        enemy1 = Input.GetNearestHeroToCursor(Entity.GetTeamNum(myHero), Enum.TeamType.TEAM_ENEMY)
+        enemy1 = Input.GetNearestHeroToCursor(Entity.GetTeamNum(axe.myHero), Enum.TeamType.TEAM_ENEMY)
       else
 		    enemy1 = Input.GetWorldCursorPos()
       end
@@ -288,7 +288,6 @@ end
 function axe.OnMenuOptionChange(option, oldValue, newValue)
   if not Menu.IsEnabled(axe.optionEnable) then return end
   if option == axe.blinkType or option == axe.comboType then
-    axe.myHero = nil
     enemy1 = nil
     flagForCall = false 
   end
