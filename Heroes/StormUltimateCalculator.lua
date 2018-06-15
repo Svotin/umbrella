@@ -62,9 +62,9 @@ function StormUltCalculator.OnDraw()
 	if NPC.GetUnitName(Heroes.GetLocal()) ~= "npc_dota_hero_storm_spirit" then return end
 	if not x or x == 0 then return end
 	Renderer.SetDrawColor(0, 0, 0, 170 )
-	Renderer.DrawFilledRect(math.ceil(w*x-outsizeWidth/2), math.ceil(h*y), outsizeWidth, 50)	
+	Renderer.DrawFilledRect(math.ceil(w*x-outsizeWidth/2), math.ceil(h*y), outsizeWidth, 54)	
 	Renderer.SetDrawColor(57, 57, 57, 170)
-	Renderer.DrawFilledRect(math.ceil(w*x-insizeWidth/2), math.ceil(h*y+3), insizeWidth, 44)
+	Renderer.DrawFilledRect(math.ceil(w*x-insizeWidth/2), math.ceil(h*y+3), insizeWidth, 48)
 	Renderer.SetDrawColor(255, 255, 255, 255)
 	if loss_mana < 0 then
 		Renderer.SetDrawColor(255, 11, 11, 255)
