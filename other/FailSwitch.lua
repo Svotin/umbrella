@@ -4,7 +4,7 @@ FS.optionKey = Menu.AddKeyOption({"Utility","Fail Switch"}, "Force Cast Key", En
 
 FS.abilityRadius = {
 						-- HERO NAME                ABILITY NAME     RADIUS 	ABILITY INDEX      NOTARGET
-					{"npc_dota_hero_tidehunter", "tidehunter_ravage", 1250, 		5, 			true},
+					{"npc_dota_hero_tidehunter", "tidehunter_ravage", 1250, 		5, 	true},
 					{"npc_dota_hero_enigma","enigma_black_hole" ,420, 5, false}, 
 					{"npc_dota_hero_faceless_void","faceless_void_chronosphere" ,425, 5, false},
 					{"npc_dota_hero_axe","axe_berserkers_call", 300, 0,true},
