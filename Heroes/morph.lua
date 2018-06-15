@@ -12,6 +12,8 @@ morph.AutoShiftKey = Menu.AddKeyOption({"Hero Specific",  "Morphling", "Auto Shi
 morph.optionHeroMorphDrawBoardXPos = Menu.AddOptionSlider({ "Hero Specific", "Morphling","Auto Shift" }, "X-Pos Adjustment", -500, 500, 10)
 morph.optionHeroMorphDrawBoardYPos = Menu.AddOptionSlider({ "Hero Specific", "Morphling","Auto Shift"}, "Y-Pos Adjustment", -500, 760, 10)
 
+morph.AutoShiftBeforeGetStunned = Menu.AddOptionBool({"Hero Specific", "Morphling", "Auto Shift"}, "Auto Shift Before Get Stunned", false) 
+morph.AutoShiftBeforeGetStunnedAdd = Menu.AddOptionBool({"Hero Specific", "Morphling", "Auto Shift"}, "Add unstable abilities", false) 
 
 morph.myHero = nil
 morph.players = {}
@@ -23,6 +25,68 @@ morph.MorphBalanceToggler = true
 morph.MorphBalanceTimer = 0
 morph.MorphBalanceSelectedHP = 0
 morph.MorphBalanceSelected = 0
+
+
+morph.dangerousAnimation = {
+	{"crush_anim", 355, false},
+	{"cast_hoofstomp_anim", 345, false},
+	{"polarity_anim", 430, true},
+	{"ravage_anim", 1250, false},
+	{"cast4_black_hole_anim", 720, true},
+	{"fissure_anim", 300, false},
+	{"enchant_totem_anim", 300, false},
+	{"chronosphere_anim", 1100, false}
+}
+
+morph.projectileAbilities = {	
+	{"npc_dota_hero_alchemist", "alchemist_unstable_concoction_projectile"},	
+	{"npc_dota_hero_sven", "sven_spell_storm_bolt"},	
+	{"npc_dota_hero_chaos_knight", "chaos_knight_chaos_bolt"},	
+	{"npc_dota_hero_skeleton_king", "skeletonking_hellfireblast"},	
+	{"npc_dota_hero_vengefulspirit", "vengeful_magic_missle"},	
+	{"npc_dota_hero_dragon_knight", "dragon_knight_dragon_tail_dragonform_proj"},	
+	{"npc_dota_hero_windrunner", "windrunner_shackleshot"}	
+}
+
+morph.additionalAbilities = {	
+	{"lasso_start_anim", 170},	
+	{"legion_commander_duel_anim", 150},	
+	{"pudge_dismember_start", 160},	
+	{"cast_doom_anim", 650},	
+	{"fiends_grip_cast_anim", 625},	
+	{"cast4_primal_roar_anim", 600},	
+}
+
+
+function morph.OnUnitAnimation(a)
+	if not Menu.IsEnabled(morph.AutoShiftBeforeGetStunned) or not Menu.IsEnabled(morph.optionEnable) or not Engine.IsInGame() or not Heroes.GetLocal() then return end
+	morph.myHero = Heroes.GetLocal()	
+	if morph.myHero == nil or NPC.GetUnitName(morph.myHero) ~= "npc_dota_hero_morphling" then return end 	
+	if Entity.IsSameTeam(a.unit,morph.myHero) then return end 
+	for i,k in pairs(morph.dangerousAnimation) do
+		if k[1] == a.sequenceName then
+			if NPC.IsEntityInRange(morph.myHero, a.unit, k[2]) then  	
+				if NPC.HasState(morph.myHero,Enum.ModifierState.MODIFIER_STATE_MAGIC_IMMUNE) and not k[3] then 	
+					return 	
+				end	
+				morph.toggleShift(morph.myHero)	
+				return
+			end
+		end
+	end
+	if Menu.IsEnabled(morph.AutoShiftBeforeGetStunnedAdd) then
+		for i,k in pairs(morph.additionalAbilities) do
+			if k[1] == a.sequenceName then
+				if NPC.IsLinkensProtected(morph.myHero) then return end
+				if NPC.IsEntityInRange(morph.myHero, a.unit, k[2]) and NPC.FindFacingNPC(a.unit)==morph.myHero then  	
+					morph.toggleShift(morph.myHero)	
+					return
+				end
+			end
+		end
+	end
+end
+
 
 function morph.OnUpdate()
 	if not Menu.IsEnabled(morph.optionEnable) or not Engine.IsInGame() or not Heroes.GetLocal() then 
@@ -36,13 +100,18 @@ function morph.OnUpdate()
 	morph.myHero = Heroes.GetLocal()
 	local FHeroes = Heroes.GetAll()
 	if NPC.GetUnitName(morph.myHero) ~= "npc_dota_hero_morphling" then return end
+-------------------------------------------------------------
+
+-------------------------------------------------------------
 	if Menu.IsKeyDownOnce(morph.AutoShiftKey) then
 		if Menu.IsEnabled(morph.AutoShift) then
 			Menu.SetEnabled(morph.AutoShift, false)
 		else 
 			Menu.SetEnabled(morph.AutoShift, true)
+			Menu.SetEnabled(morph.AutoShiftBeforeGetStunned, false)
 		end		
 	end
+-------------------------------------------------------------
 	if Menu.IsKeyDownOnce(morph.AutoKillKey) then
 		if Menu.IsEnabled(morph.AutoKill) then
 			Menu.SetEnabled(morph.AutoKill, false)
@@ -50,9 +119,11 @@ function morph.OnUpdate()
 			Menu.SetEnabled(morph.AutoKill, true)
 		end		
 	end
+-------------------------------------------------------------
 	if Menu.IsEnabled(morph.AutoShift) then
 		morph.MorphBalaceHP(morph.myHero)
 	end
+
 	if Menu.IsEnabled(morph.AutoKill) or Menu.IsEnabled(morph.Display) then
 		for i = 1, Heroes.Count() do
    			local hero = Heroes.Get(i)
@@ -317,14 +388,32 @@ function morph.OnDraw()
 end
 
 
--- function  morph.toggleShift(myHero)
--- 	local shift = NPC.GetAbilityByIndex(myHero, 4)
--- 	if not shift then return end
--- 	if not Ability.GetToggleState(shift) then
--- 		Ability.Toggle(shift)
--- 				return
--- 	end
--- end
+function  morph.toggleShift(myHero)
+	local shift = NPC.GetAbilityByIndex(myHero, 4)
+	if not shift then return end
+	if not Ability.GetToggleState(shift) then
+		Ability.Toggle(shift)
+				return
+	end
+end
+
+function morph.OnProjectile(projectile)	
+	morph.myHero = Heroes.GetLocal()	
+	if morph.myHero == nil or NPC.GetUnitName(morph.myHero) ~= "npc_dota_hero_morphling" then return end 	
+	if not Menu.IsEnabled(morph.AutoShiftBeforeGetStunned) or not Menu.IsEnabled(morph.optionEnable) or not projectile.target == morph.myHero then return end	
+	local target = projectile.target	
+	local source = nil	
+	if Entity.IsEntity(projectile.source) then	
+		source = NPC.GetUnitName(projectile.source)	
+	end	
+	local name = projectile.name	
+	for k,hero in pairs(morph.projectileAbilities) do	
+		if source == hero[1] and name == hero[2] and not NPC.IsLinkensProtected(morph.myHero) then	
+			morph.toggleShift(morph.myHero)	
+			return	
+		end 	
+	end	 		
+ end
 
 function morph.OnPrepareUnitOrders(orders) --xenohack
 	if not orders then return true end
@@ -450,7 +539,7 @@ function morph.MorphDrawBalanceBoard(myHero)
 	if not Menu.IsEnabled(morph.AutoShift) then return end
 
 	local maxMorphAGI = math.floor(Hero.GetAgility(myHero))
-	local maxMorphSTR = math.floor(Hero.GetStrength(myHero))-1
+	local maxMorphSTR = math.floor(Hero.GetStrength(myHero))
 	local currentMAXHP = Entity.GetMaxHealth(myHero)
 
 	local minHP = currentMAXHP - maxMorphSTR * 18 
@@ -535,6 +624,19 @@ function morph.MorphDrawBalanceBoard(myHero)
 		Renderer.DrawText(Font, startX+3+10*(morph.MorphBalanceSelected-1), startY+30, morph.MorphBalanceSelectedHP, 0)
 	end
 
+end
+
+function morph.OnMenuOptionChange(option, oldValue, newValue)
+  if option == morph.AutoShiftBeforeGetStunned then
+	if newValue then
+		Menu.SetEnabled(morph.AutoShift, false)
+	end
+  end
+  if option == morph.AutoShift then
+  	if newValue then
+  		Menu.SetEnabled(morph.AutoShiftBeforeGetStunned, false)
+	end
+  end
 end
 
 return morph
