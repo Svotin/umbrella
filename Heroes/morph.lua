@@ -400,12 +400,13 @@ end
 function morph.OnProjectile(projectile)	
 	morph.myHero = Heroes.GetLocal()	
 	if morph.myHero == nil or NPC.GetUnitName(morph.myHero) ~= "npc_dota_hero_morphling" then return end 	
-	if not Menu.IsEnabled(morph.AutoShiftBeforeGetStunned) or not Menu.IsEnabled(morph.optionEnable) or not projectile.target == morph.myHero then return end	
-	local target = projectile.target	
+	if not Menu.IsEnabled(morph.AutoShiftBeforeGetStunned) or not Menu.IsEnabled(morph.optionEnable) or not projectile.target or Entity.IsSameTeam(projectile.source, morph.myHero) then return end		
 	local source = nil	
 	if Entity.IsEntity(projectile.source) then	
 		source = NPC.GetUnitName(projectile.source)	
 	end	
+	if projectile.target ~= morph.myHero then return end
+	Log.Write(NPC.GetUnitName(projectile.target))
 	local name = projectile.name	
 	for k,hero in pairs(morph.projectileAbilities) do	
 		if source == hero[1] and name == hero[2] and not NPC.IsLinkensProtected(morph.myHero) then	
