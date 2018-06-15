@@ -4,6 +4,7 @@ axe.optionEnable = Menu.AddOptionBool({"Hero Specific", "Axe"}, "Enable", false)
 axe.blinkRadius = Menu.AddOptionBool({"Hero Specific", "Axe"}, "Range of the Blink Distance", false)
 axe.optionAutoUltEnable = Menu.AddOptionBool({"Hero Specific", "Axe", "Auto Culling"}, "Enable", false)
 axe.customRange = Menu.AddOptionSlider({"Hero Specific", "Axe", "Auto Culling"}, "Range to Target", 120, 300, 120)
+axe.cullingRange = Menu.AddOptionBool({"Hero Specific", "Axe", "Auto Culling"}, "[debug]Show Auto Culling Range", true)
 axe.optionKey = Menu.AddKeyOption({"Hero Specific", "Axe"}, "Combo Key", Enum.ButtonCode.KEY_Z)
 axe.blinkType = Menu.AddOptionCombo({"Hero Specific", "Axe"}, "Blink Type", {"Blink to the best Position", "Blink to Cursor"}, 0)
 axe.comboType = Menu.AddOptionCombo({"Hero Specific", "Axe"}, "Combo Type", {"Blink+Call first", "Items first"}, 1)
@@ -44,20 +45,24 @@ function axe.OnUpdate()
 	else
     enemy1 = nil
   end
-	if  Menu.IsEnabled(axe.blinkRadius) then
+  ------------------------------------------------------------------
+  local ulti = NPC.GetAbility(axe.myHero, "axe_culling_blade")
+  local customRange = Menu.GetValue(axe.customRange)
+  local castRange = Ability.GetCastRange(ulti) + customRange
+  ------------------------------------------------------------------
+	if Menu.IsEnabled(axe.blinkRadius) then
 		Engine.ExecuteCommand("dota_range_display " .. 1200)
-	else
+	elseif Menu.IsEnabled(axe.cullingRange) and ulti then
+    Engine.ExecuteCommand("dota_range_display " .. castRange)
+  else
 		Engine.ExecuteCommand("dota_range_display " .. 0)
 	end
 	if not Menu.IsEnabled(axe.optionAutoUltEnable) then return end
-	local ulti = NPC.GetAbility(axe.myHero, "axe_culling_blade")
 	local mana = Ability.GetManaCost(ulti)
 	if not Ability.IsReady(ulti) then return end
 	AllHeroes = Heroes.GetAll()
 	local lvlUlti = Ability.GetLevel(ulti)
 	local damage = 175 + (75*lvlUlti)
-	local customRange = Menu.GetValue(axe.customRange)
-	local castRange = Ability.GetCastRange(ulti) + customRange
 	for _,hero in pairs(AllHeroes) do
 		if hero ~= nil and hero ~= 0 and NPCs.Contains(hero) and NPC.IsEntityInRange(axe.myHero, hero,castRange) and not Entity.IsSameTeam(hero,axe.myHero) then
 			if Entity.IsAlive(hero) and not Entity.IsDormant(hero) and not NPC.IsIllusion(hero) then 
@@ -177,10 +182,10 @@ function axe.Combo(myHero,enemy)
 		enemy1 = nil
  		return true
  	end
-  if hunger and Menu.IsEnabled(axe.hunger) and Ability.IsCastable(hunger, myMana - 120) and NPC.IsEntityInRange(myHero, Input.GetNearestHeroToCursor(Entity.GetTeamNum(myHero), Enum.TeamType.TEAM_ENEMY), Ability.GetCastRange(hunger))
-   and not NPC.HasState(Input.GetNearestHeroToCursor(Entity.GetTeamNum(myHero), Enum.TeamType.TEAM_ENEMY), Enum.ModifierState.MODIFIER_STATE_MAGIC_IMMUNE)
+  local nearHero = Input.GetNearestHeroToCursor(Entity.GetTeamNum(myHero), Enum.TeamType.TEAM_ENEMY)
+  if hunger and nearHero and Menu.IsEnabled(axe.hunger) and Ability.IsCastable(hunger, myMana - 120) and NPC.IsEntityInRange(myHero, nearHero, Ability.GetCastRange(hunger)) and not NPC.HasState(nearHero, Enum.ModifierState.MODIFIER_STATE_MAGIC_IMMUNE)
    and not axe.IsInAbilityPhase(myHero) then 
-   Ability.CastTarget(hunger, Input.GetNearestHeroToCursor(Entity.GetTeamNum(myHero), Enum.TeamType.TEAM_ENEMY))
+   Ability.CastTarget(hunger, nearHero)
     flagForCall = false
     enemy1 = nil
    return false
@@ -286,11 +291,25 @@ function axe.IsInAbilityPhase(myHero)   --из утилити
 end
 
 function axe.OnMenuOptionChange(option, oldValue, newValue)
+                       ---- INIT ----
   if not Menu.IsEnabled(axe.optionEnable) then return end
   if option == axe.blinkType or option == axe.comboType then
     enemy1 = nil
     flagForCall = false 
   end
+  ------------------------------------------------------------
+  if option == axe.cullingRange then
+    if newValue then
+      Menu.SetEnabled(axe.blinkRadius, false)
+    end
+  end
+  if option == axe.blinkRadius then
+    if newValue then
+      Menu.SetEnabled(axe.cullingRange, false)
+    end
+  end
 end
+
+
 
 return axe
