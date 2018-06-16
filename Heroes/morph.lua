@@ -4,6 +4,7 @@ morph.optionEnable = Menu.AddOptionBool({"Hero Specific", "Morphling"}, "Enable"
 morph.maxWaveRange =  Menu.AddOptionBool({"Hero Specific", "Morphling"}, "Max Waveform Range", false)
 morph.AutoKill = Menu.AddOptionBool({"Hero Specific", "Morphling", "EBlade Auto Kill"}, "Enable", false)
 morph.AutoKillKey = Menu.AddKeyOption({"Hero Specific",  "Morphling", "EBlade Auto Kill"}, "Toggle Key", Enum.ButtonCode.KEY_0)
+morph.QOP = Menu.AddOptionBool({"Hero Specific",  "Morphling", "EBlade Auto Kill"}, "QOP has Level 25: 15s Spell Block?", false)
 morph.Display = Menu.AddOptionBool({"Hero Specific", "Morphling"}, "Damage Info", false)
 morph.AutoShift = Menu.AddOptionBool({"Hero Specific", "Morphling","Auto Shift"}, "Enable", false)
 morph.optionHeroMorphHPBalanceDeviation = Menu.AddOptionSlider({"Hero Specific", "Morphling", "Auto Shift" }, "HP Deviation", 50, 250, 50)
@@ -21,6 +22,7 @@ Font = Renderer.LoadFont("Tahoma", 20, Enum.FontWeight.BOLD)
 FontForStatus = Renderer.LoadFont("Tahoma", 17, Enum.FontWeight.BOLD)
 morph.localDmg = 0
 morph.Toggler = true
+morph.lastTick = 0
 morph.MorphBalanceToggler = true
 morph.MorphBalanceTimer = 0
 morph.MorphBalanceSelectedHP = 0
@@ -161,18 +163,29 @@ function morph.OnUpdate()
 		if ebladeDmg == 0 and strikeDmg == 0 then  morph.localDmg = 0 return end
 		local intMultiplier = ((0.069 * intellect) / 100) + 1
 		morph.localDmg = ((strikeDmg+ebladeDmg)*ebladeMultiplier)*intMultiplier
-		if not Menu.IsEnabled(morph.AutoKill) then return end
+		local ebladeOnly = ebladeDmg*intMultiplier*ebladeMultiplier
+		if not Menu.IsEnabled(morph.AutoKill) or not morph.SleepReady(1.0) then return end
 		for _,hero in pairs(FHeroes) do
 			if hero ~= nil and hero ~= 0 and NPCs.Contains(hero) and NPC.IsEntityInRange(morph.myHero, hero,castRange) and not Entity.IsSameTeam(hero,morph.myHero) then
-				if Entity.IsAlive(hero) and not Entity.IsDormant(hero) and not NPC.IsIllusion(hero) and Menu.IsEnabled(morph.players[Hero.GetPlayerID(hero)]) and morph.IsHasGuard(hero)=="nil"  then
+				if Entity.IsAlive(hero) and not Entity.IsDormant(hero) and not NPC.IsIllusion(hero) and Menu.IsEnabled(morph.players[Hero.GetPlayerID(hero)]) and morph.IsHasGuard(hero)=="nil" then
 					local totalDmg = morph.GetTotalDmg(hero, morph.localDmg, morph.myHero) - 2
-					if Entity.GetHealth(hero)+NPC.GetHealthRegen(hero) <= totalDmg then
+					local ebladeTotal = morph.GetTotalDmg(hero, ebladeOnly, morph.myHero) - 2	
+					if Entity.GetHealth(hero)+NPC.GetHealthRegen(hero) <= ebladeTotal then
+						if ebladeDmg > 0 then
+							Ability.CastTarget(eblade, hero)
+							morph.lastTick = os.clock()
+							break
+						end
+						return
+					elseif Entity.GetHealth(hero)+NPC.GetHealthRegen(hero) <= totalDmg  then 
 						if ebladeDmg > 0 then
 							Ability.CastTarget(eblade, hero)
 						end
 						if strikeDmg > 0 then 
 							Ability.CastTarget(strike, hero)
-						end return
+							break
+						end 
+						return
 					end
 				end
 			end
@@ -214,8 +227,10 @@ function morph.IsHasGuard(npc) --ЧЕСТНО СПИЗДИЛ
 				guarditis = "Immune"
 			end
 	end
-	if NPC.GetAbility(npc,"special_bonus_unique_queen_of_pain") then 
-		guarditis = "Linkens"
+	if Menu.IsEnabled(morph.QOP) then
+		if NPC.GetAbility(npc,"special_bonus_unique_queen_of_pain") then 
+			guarditis = "Linkens"
+		end
 	end
 	if NPC.HasModifier(npc,"modifier_item_lotus_orb_active") then guarditis = "Lotus" end
 	if 	NPC.HasState(npc,Enum.ModifierState.MODIFIER_STATE_MAGIC_IMMUNE) or 
@@ -231,7 +246,8 @@ function morph.IsHasGuard(npc) --ЧЕСТНО СПИЗДИЛ
 		NPC.HasModifier(npc,"modifier_special_bonus_spell_block") or
 		NPC.HasModifier(npc,"modifier_skeleton_king_reincarnation_scepter_active") or
 		NPC.HasModifier(npc,"modifier_eul_cyclone") or
-		NPC.HasModifier(npc,"modifier_brewmaster_storm_cyclone") then	
+		NPC.HasModifier(npc,"modifier_brewmaster_storm_cyclone") or 
+		NPC.HasModifier(npc,"modifier_clinkz_strafe") then	
 			guarditis = "Immune"
 	end
 	if NPC.HasModifier(npc,"modifier_legion_commander_duel") then
@@ -254,7 +270,7 @@ function morph.IsHasGuard(npc) --ЧЕСТНО СПИЗДИЛ
 		end
 	end
 	local aeon_disk = NPC.GetItem(npc, "item_aeon_disk")
-	if aeon_disk and Ability.IsReady(aeon_disk) then guarditis = "Immune" end
+	if aeon_disk and (Ability.IsReady(aeon_disk) or Ability.SecondsSinceLastUse(aeon_disk)<=1) then guarditis = "Immune" end --тоже казино, что и с абаддоном
 	return guarditis
 end
 
@@ -637,6 +653,14 @@ function morph.OnMenuOptionChange(option, oldValue, newValue)
   		Menu.SetEnabled(morph.AutoShiftBeforeGetStunned, false)
 	end
   end
+end
+
+
+function morph.SleepReady(sleep)
+	if (os.clock() - morph.lastTick) >= sleep then
+		return true
+	end
+	return false
 end
 
 return morph
