@@ -217,18 +217,24 @@ function morph.IsHasGuard(npc) --ЧЕСТНО СПИЗДИЛ
 	if NPC.IsLinkensProtected(npc) then guarditis = "Linkens" end
 	if NPC.HasModifier(npc,"modifier_item_blade_mail_reflect") then guarditis = "BM" end
 	local spell_shield = NPC.GetAbility(npc, "antimage_spell_shield")
-	if spell_shield and Ability.IsReady(spell_shield) and (NPC.HasModifier(npc, "modifier_item_ultimate_scepter") or NPC.HasModifier(npc, "modifier_item_ultimate_scepter_consumed")) 
+	if spell_shield and Ability.GetLevel(spell_shield)>0 and Ability.IsReady(spell_shield) and (NPC.HasModifier(npc, "modifier_item_ultimate_scepter") or NPC.HasModifier(npc, "modifier_item_ultimate_scepter_consumed")) 
 	and not NPC.HasModifier(npc,"modifier_silver_edge_debuff") and not NPC.HasModifier(npc,"modifier_viper_nethertoxin") then
 		guarditis = "Lotus"
 	end
 	local abaddonUlt = NPC.GetAbility(npc, "abaddon_borrowed_time")
-	if abaddonUlt then
-			if Ability.IsReady(abaddonUlt) or Ability.SecondsSinceLastUse(abaddonUlt)<=1 then --рот ебал этого казино, он даёт прокаст, когда абилка уже в кд, а модификатора ещё нет.
+	if abaddonUlt and Ability.GetLevel(abaddonUlt)>0 then
+			if (Ability.IsReady(abaddonUlt)) then
+				if NPC.HasModifier(npc,"modifier_silver_edge_debuff") or NPC.HasModifier(npc,"modifier_viper_nethertoxin")then 
+					guarditis = "nil"
+				else
+					guarditis = "Immune"
+				end
+			elseif Ability.SecondsSinceLastUse(abaddonUlt)<=1 then --рот ебал этого казино, он даёт прокаст, когда абилка уже в кд, а модификатора ещё нет.
 				guarditis = "Immune"
 			end
 	end
 	if Menu.IsEnabled(morph.QOP) then
-		if NPC.GetAbility(npc,"special_bonus_unique_queen_of_pain") then 
+		if NPC.GetCurrentLevel(npc) == 25 and NPC.GetAbility(npc,"special_bonus_unique_queen_of_pain") then 
 			guarditis = "Linkens"
 		end
 	end
