@@ -95,8 +95,8 @@ end
 
 function morph.OnUpdate()
 	if not Menu.IsEnabled(morph.optionEnable) or not Engine.IsInGame() or not Heroes.GetLocal() then 
-		for i = 0, Heroes.Count(), 1 do
-      		if morph.players[i] then
+		for i = -1, Heroes.Count(), 1 do
+      		if morph.players[i][0] then
         		Menu.RemoveOption(morph.players[i][0]) 
         		morph.players[i][0] = nil
         		morph.players[i][1] = nil
