@@ -95,16 +95,18 @@ end
 
 function morph.OnUpdate()
 	if not Menu.IsEnabled(morph.optionEnable) or not Engine.IsInGame() or not Heroes.GetLocal() then 
-		for i = -1, Heroes.Count(), 1 do
-      		if morph.players[i][0] then
-        		Menu.RemoveOption(morph.players[i][0]) 
-        		morph.players[i][0] = nil
-        		morph.players[i][1] = nil
-        		morph.players[i][2] = nil
-        		morph.players[i][3] = nil
-        		morph.players_mark[i] = false
+		for i = 1, Heroes.Count(), 1 do
+			local hero = Heroes.Get(i)
+      		if morph.players_mark[Hero.GetPlayerID(hero)] then
+        		Menu.RemoveOption(morph.players[Hero.GetPlayerID(hero)][0]) 
+        		morph.players[Hero.GetPlayerID(hero)][0] = nil
+        		morph.players[Hero.GetPlayerID(hero)][1] = nil
+        		morph.players[Hero.GetPlayerID(hero)][2] = nil
+        		morph.players[Hero.GetPlayerID(hero)][3] = nil
+        		morph.players_mark[Hero.GetPlayerID(hero)] = false
      		end
-    	end return 
+    	end 
+    	return 
     end
 	morph.myHero = Heroes.GetLocal()
 	local FHeroes = Heroes.GetAll()
