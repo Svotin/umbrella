@@ -440,7 +440,7 @@ function Zeus.IsHasGuard(npc)
 			end
 		else
 			for _,hero in pairs(Heroes.GetAll()) do
-				if hero ~= nil and hero ~= 0 and NPCs.Contains(hero) and not Entity.IsSameTeam(hero,npc) and NPC.HasModifier(hero,"modifier_legion_commander_duel") then
+				if hero ~= nil and hero ~= 0 and Heroes.Contains(hero) and not Entity.IsSameTeam(hero,npc) and NPC.HasModifier(hero,"modifier_legion_commander_duel") then
 					local dueltarget = NPC.GetAbility(hero, "legion_commander_duel")
 					if dueltarget then
 						if NPC.HasModifier(hero, "modifier_item_ultimate_scepter") or NPC.HasModifier(hero, "modifier_item_ultimate_scepter_consumed") then

@@ -146,6 +146,7 @@ function morph.OnUpdate()
 		local castRange = 0
 		local ebladeMultiplier = 1
 		local ebladeDmg = 0
+
 		if strikeDmg ~= 0 then 
 			if Ability.GetManaCost(strike)<= NPC.GetMana(morph.myHero) then
 				totalMana = totalMana + Ability.GetManaCost(strike)
@@ -166,7 +167,7 @@ function morph.OnUpdate()
 		local ebladeOnly = ebladeDmg*intMultiplier*ebladeMultiplier
 		if not Menu.IsEnabled(morph.AutoKill) or not morph.SleepReady(1.0) then return end
 		for _,hero in pairs(FHeroes) do
-			if hero ~= nil and hero ~= 0 and NPCs.Contains(hero) and NPC.IsEntityInRange(morph.myHero, hero,castRange) and not Entity.IsSameTeam(hero,morph.myHero) then
+			if hero ~= nil and hero ~= 0 and Heroes.Contains(hero) and NPC.IsEntityInRange(morph.myHero, hero,castRange) and not Entity.IsSameTeam(hero,morph.myHero) then
 				if Entity.IsAlive(hero) and not Entity.IsDormant(hero) and not NPC.IsIllusion(hero) and Menu.IsEnabled(morph.players[Hero.GetPlayerID(hero)]) and morph.IsHasGuard(hero)=="nil" then
 					local totalDmg = morph.GetTotalDmg(hero, morph.localDmg, morph.myHero) - 2
 					local ebladeTotal = morph.GetTotalDmg(hero, ebladeOnly, morph.myHero) - 2	
@@ -264,7 +265,7 @@ function morph.IsHasGuard(npc) --ЧЕСТНО СПИЗДИЛ
 			end
 		else
 			for _,hero in pairs(Heroes.GetAll()) do
-				if hero ~= nil and hero ~= 0 and NPCs.Contains(hero) and not Entity.IsSameTeam(hero,npc) and NPC.HasModifier(hero,"modifier_legion_commander_duel") then
+				if hero ~= nil and hero ~= 0 and Heroes.Contains(hero) and not Entity.IsSameTeam(hero,npc) and NPC.HasModifier(hero,"modifier_legion_commander_duel") then
 					local dueltarget = NPC.GetAbility(hero, "legion_commander_duel")
 					if dueltarget then
 						if NPC.HasModifier(hero, "modifier_item_ultimate_scepter") or NPC.HasModifier(hero, "modifier_item_ultimate_scepter_consumed") then
@@ -382,13 +383,15 @@ function morph.OnDraw()
 		autoKillMode = "OFF"
 	end
 	Renderer.DrawText(Font, x, y, "AutoKill: ["..autoKillMode.."]")
+	---- Damage Info ----
 	if Menu.IsEnabled(morph.Display) then
 		local FHeroes = Heroes.GetAll()
 		for _,hero in pairs(FHeroes) do
-			if hero ~= nil and hero ~= 0 and NPCs.Contains(hero) and not Entity.IsSameTeam(hero,morph.myHero) then
+			if hero ~= nil and hero ~= 0 and Heroes.Contains(hero) and not Entity.IsSameTeam(hero,morph.myHero) then
 				if Entity.IsAlive(hero) and not Entity.IsDormant(hero) and not NPC.IsIllusion(hero) then
 					local totalDmg = morph.GetTotalDmg(hero, morph.localDmg, morph.myHero) - 2
 					local dmg = Entity.GetHealth(hero) - totalDmg 
+
 					if dmg > 0 then
 						Renderer.SetDrawColor(255, 0, 0)
 					else
@@ -424,9 +427,9 @@ function morph.OnProjectile(projectile)
 	if morph.myHero == nil or NPC.GetUnitName(morph.myHero) ~= "npc_dota_hero_morphling" then return end 	
 	if not Menu.IsEnabled(morph.AutoShiftBeforeGetStunned) or not Menu.IsEnabled(morph.optionEnable) or not projectile.target or Entity.IsSameTeam(projectile.source, morph.myHero) then return end		
 	local source = nil	
-	if Entity.IsEntity(projectile.source) then	
+	if projectile.source and projectile.source~=0 then	
 		source = NPC.GetUnitName(projectile.source)	
-	end	
+	else return end
 	if projectile.target ~= morph.myHero then return end
 	local name = projectile.name	
 	for k,hero in pairs(morph.projectileAbilities) do	

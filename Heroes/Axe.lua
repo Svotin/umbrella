@@ -64,7 +64,7 @@ function axe.OnUpdate()
 	local lvlUlti = Ability.GetLevel(ulti)
 	local damage = 175 + (75*lvlUlti)
 	for _,hero in pairs(AllHeroes) do
-		if hero ~= nil and hero ~= 0 and NPCs.Contains(hero) and NPC.IsEntityInRange(axe.myHero, hero,castRange) and not Entity.IsSameTeam(hero,axe.myHero) then
+		if hero ~= nil and hero ~= 0 and Heroes.Contains(hero) and NPC.IsEntityInRange(axe.myHero, hero,castRange) and not Entity.IsSameTeam(hero,axe.myHero) then
 			if Entity.IsAlive(hero) and not Entity.IsDormant(hero) and not NPC.IsIllusion(hero) then 
 				if Entity.GetHealth(hero) + NPC.GetHealthRegen(hero) <= damage and not axe.checkProtection(hero) and mana <= NPC.GetMana(axe.myHero) and axe.SleepCheck(0.3, "delay") then
 					Ability.CastTarget(ulti, hero)
