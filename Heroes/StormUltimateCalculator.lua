@@ -1,19 +1,20 @@
 local StormUltCalculator = {}
 
 StormUltCalculator.optionEnable = Menu.AddOptionBool({"Hero Specific", "Storm Spirit"}, "Enable",false)
-StormUltCalculator.optionDrawingX = Menu.AddOptionSlider({"Hero Specific", "Storm Spirit", "Drawing"},"X coord", 1, 100, 1)
-StormUltCalculator.optionDrawingY = Menu.AddOptionSlider({"Hero Specific", "Storm Spirit", "Drawing"},"Y coord", 1, 100, 1)
+StormUltCalculator.drawPlace = Menu.AddOptionCombo({"Hero Specific", "Storm Spirit"}, "Drawing Type", {"Static", "Depending on cursor"}, 0)
+StormUltCalculator.optionDrawingX = Menu.AddOptionSlider({"Hero Specific", "Storm Spirit"},"X coord", 1, 100, 1)
+StormUltCalculator.optionDrawingY = Menu.AddOptionSlider({"Hero Specific", "Storm Spirit"},"Y coord", 1, 100, 1)
 StormUltCalculator.fontItem = Renderer.LoadFont("Arial", 18, Enum.FontWeight.EXTRABOLD)
 
 
-w, h = 0
-x = 0
-y = 0
-outsizeWidth = 0
-insizeWidth = 0
-loss_mana = 0
-time_ultimate_to_point = 0
-damage = 0
+local w, h = 0
+local x = 0
+local y = 0
+local outsizeWidth = 0
+local insizeWidth = 0
+local loss_mana = 0
+local time_ultimate_to_point = 0
+local damage = 0
 
 function StormUltCalculator.OnGameStart()
 	StormUltCalculator.Zeroing()
@@ -26,6 +27,19 @@ function StormUltCalculator.OnUpdate()
 	if not Menu.IsEnabled(StormUltCalculator.optionEnable) or not Engine.IsInGame() or not Heroes.GetLocal() then return end
 	local myHero = Heroes.GetLocal()
 	if NPC.GetUnitName(myHero) ~= "npc_dota_hero_storm_spirit" then return end
+---------------------------------------------------------------------------------------------------------------------------
+	if Menu.GetValue(StormUltCalculator.drawPlace) == 0 then
+		if Input.IsKeyDown(Enum.ButtonCode.KEY_RIGHT) and Menu.GetValue(StormUltCalculator.optionDrawingX) < 100 then
+			Menu.SetValue(StormUltCalculator.optionDrawingX, (Menu.GetValue(StormUltCalculator.optionDrawingX)+1))
+		elseif Input.IsKeyDown(Enum.ButtonCode.KEY_LEFT) and Menu.GetValue(StormUltCalculator.optionDrawingX) > 1 then
+			Menu.SetValue(StormUltCalculator.optionDrawingX, (Menu.GetValue(StormUltCalculator.optionDrawingX)-1))
+		elseif Input.IsKeyDown(Enum.ButtonCode.KEY_UP) and Menu.GetValue(StormUltCalculator.optionDrawingY) > 1 then
+			Menu.SetValue(StormUltCalculator.optionDrawingY, (Menu.GetValue(StormUltCalculator.optionDrawingY)-1))
+		elseif Input.IsKeyDown(Enum.ButtonCode.KEY_DOWN) and Menu.GetValue(StormUltCalculator.optionDrawingY) < 100 then
+			Menu.SetValue(StormUltCalculator.optionDrawingY, (Menu.GetValue(StormUltCalculator.optionDrawingY)+1))
+		end
+	end
+---------------------------------------------------------------------------------------------------------------------------
 	local myMana = NPC.GetMana(myHero)
 	StormUltCalculator.calc(myHero,myMana)
 	return
@@ -40,18 +54,30 @@ function StormUltCalculator.calc(myHero, myMana)
 	local mouse_pos = Input.GetWorldCursorPos()
 	local ultimate_pos =  mouse_pos - my_pos
 	local regen = NPC.GetManaRegen(myHero)
-	w, h = Renderer.GetScreenSize()
-	x = Menu.GetValue(StormUltCalculator.optionDrawingX) / 100
-	y = Menu.GetValue(StormUltCalculator.optionDrawingY) / 100
+	Log.Write(Menu.GetValue(StormUltCalculator.drawPlace))
+	if Menu.GetValue(StormUltCalculator.drawPlace) == 0 then
+		w, h = Renderer.GetScreenSize()
+		x = Menu.GetValue(StormUltCalculator.optionDrawingX) / 100
+		y = Menu.GetValue(StormUltCalculator.optionDrawingY) / 100
+	else
+		w, h = Input.GetCursorPos()
+		x = 1
+		y = 1
+		w = w - 80
+	end
 	outsizeWidth = 140
 	insizeWidth = 131
 	local manaStartUltimatePerc = Ability.GetLevelSpecialValueForFloat(ultimate, "ball_lightning_initial_mana_percentage")
 	local manaStartUltimateConst = Ability.GetLevelSpecialValueForFloat(ultimate, "ball_lightning_initial_mana_base")
+	local arcaneRune = NPC.HasModifier(myHero,"modifier_rune_arcane") 
+	local kaya = NPC.GetItem(myHero, "item_kaya", true)
 	local speedUltimate = Ability.GetLevelSpecialValueForFloat(ultimate, "ball_lightning_move_speed")
 	local manaForUnits = NPC.GetMaxMana(myHero) * 0.007 + 12
 	local manaStartUltimate = manaStartUltimateConst + (manaStartUltimatePerc / 100) * NPC.GetMaxMana(myHero)
 	time_ultimate_to_point = math.ceil((ultimate_pos:Length() / speedUltimate * 100)) / 100
 	loss_mana = NPC.GetMana(myHero) - (ultimate_pos:Length() / 100) * manaForUnits - manaStartUltimate + regen*time_ultimate_to_point
+	if kaya then loss_mana = loss_mana*0.9 end
+	if arcaneRune then loss_mana = loss_mana * 0.7 end
 	damage = (math.floor((ultimate_pos:Length() / 100))-1) * (4+(Ability.GetLevel(ultimate)*4))
 	if damage < 0 then damage = 0 end
 	return
