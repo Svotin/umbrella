@@ -168,6 +168,7 @@ end
    			morph.lastTick[1] = os.clock()
    		end
    		if not morph.SleepReady(1.0, 0) then return end
+   		if not Entity.IsAlive(morph.myHero) then return end
    		local heroes = Entity.GetHeroesInRadius(morph.myHero, castRange, Enum.TeamType.TEAM_ENEMY)
    		if not heroes or #heroes < 1 then return end
    		for i=1 ,#heroes do
