@@ -5,29 +5,51 @@ TA.optionBlink = Menu.AddOptionBool({"Hero Specific", "Templar Assassin","Items"
 TA.HarrasKey = Menu.AddKeyOption({"Hero Specific", "Templar Assassin"}, "Harras Key", Enum.ButtonCode.KEY_C)
 TA.comboKey = Menu.AddKeyOption({"Hero Specific", "Templar Assassin"}, "Combo Key", Enum.ButtonCode.KEY_V)
 TA.harrasRange = Menu.AddOptionSlider({"Hero Specific", "Templar Assassin"}, "Harras Range", 50, 600, 100)
---TA.optionHints =  Menu.AddOptionBool({"Hero Specific", "Templar Assassin"}, "Show Attack Hints", false)
+TA.optionHints =  Menu.AddOptionBool({"Hero Specific", "Templar Assassin"}, "Show Attack Hints", false)
 
 TA.Orchid = Menu.AddOptionBool({"Hero Specific", "Templar Assassin", "Items"}, "Orchid/Bloodthorn", false)
 TA.Nullifier = Menu.AddOptionBool({"Hero Specific", "Templar Assassin", "Items"}, "Nullifier", false)
 TA.BKB = Menu.AddOptionBool({"Hero Specific", "Templar Assassin", "Items"}, "Black King Bar", false)
 
+--TA.StackKey = Menu.AddKeyOption({"Hero Specific", "Templar Assassin"}, "Stack Key", Enum.ButtonCode.KEY_X)
 
 
+TA.CampLocation = {
+	radiant_ancient_camp_1 = Vector(112, -1897, 384),
+	radiant_ancient_camp_2 = Vector(-3014, -76, 384),
+	dire_ancient_camp_1 = Vector(-807, 2290, 384.),
+	dire_ancient_camp_2 = Vector(3842, -646, 256),
+	radiant_small_camp = Vector(2906, -4601, 256),
+	dire_small_camp = Vector(-2787, 4544, 256),
+	radiant_mid_camp_1 = Vector(360, -4682, 384),
+	radiant_mid_camp_2 = Vector(-515, -3315, 256),
+	radiant_mid_camp_3 = Vector(-3711, 844, 256),
+	dire_mid_camp_1 = Vector(-1881, 4193, 256),
+	dire_mid_camp_2 = Vector(-194, 3401, 256),
+	dire_mid_camp_3 = Vector(2557, 78, 384),
+	radiant_large_camp_1 = Vector(454, -4353, 256),
+	radiant_large_camp_2 = Vector(-1753, -4262, 256),
+	radiant_large_camp_3 = Vector(-4740, -338, 256),
+	dire_large_camp_1 = Vector(4549, -4353, 256),
+	dire_large_camp_2 = Vector(1295, 3335, 384),
+	dire_large_camp_3 = Vector(4293, 786, 384)
+}
 
-myHero = nil
-enemy = nil
+local myHero = nil
+local enemy = nil
 
 TA.lastTick = 0
 TA.itemDelay = 0
 TA.lastItemTick = 0	
-flagForMeld = false
-
+local flagForMeld = false
+local myAttackRange = 0
 
 function TA.OnUpdate()
 	if not Menu.IsEnabled(TA.option) or not Engine.IsInGame() or not Heroes.GetLocal() then return end
 	myHero = Heroes.GetLocal()
 	if NPC.GetUnitName(myHero) ~= "npc_dota_hero_templar_assassin" then return end
 	if not Entity.IsAlive(myHero) or NPC.IsStunned(myHero) or NPC.IsSilenced(myHero) then return end
+
 	if Menu.IsKeyDown(TA.comboKey) or Menu.IsKeyDown(TA.HarrasKey) then
 		enemy = Input.GetNearestHeroToCursor(Entity.GetTeamNum(myHero), Enum.TeamType.TEAM_ENEMY)
 		if enemy and enemy ~= 0 then
@@ -36,6 +58,14 @@ function TA.OnUpdate()
 			return
 		end
 	end
+	-- if Menu.IsKeyDown(TA.StackKey) then 
+	-- 	local trap = NPC.GetAbility(myHero, "templar_assassin_psionic_trap")
+	-- 	local mouse = Input.GetWorldCursorPos()
+	-- 	if TA.InNeutralCamp(mouse) then
+	-- 		Ability.CastPosition(trap, mouse)
+	-- 	end
+	--end
+
 end
 
 function TA.TACombo(myHero, enemy)
@@ -59,10 +89,6 @@ function TA.TACombo(myHero, enemy)
 	local psiBlades = NPC.GetAbility(myHero, "templar_assassin_psi_blades")
 
 	local myMana = NPC.GetMana(myHero)
-	local myAttackRange = NPC.GetAttackRange(myHero)
-	if NPC.HasItem(myHero, "item_dragon_lance", true) or NPC.HasItem(myHero, "item_hurricane_pike", true) then
-		myAttackRange = myAttackRange + 140
-	end
 	local psiBladesLvl = Ability.GetLevel(psiBlades)
 	myAttackRange = myAttackRange + (psiBladesLvl*60)
 
@@ -71,13 +97,16 @@ function TA.TACombo(myHero, enemy)
 	if Menu.IsKeyDown(TA.HarrasKey) then
 		if TA.TApsiBladesSpill(myHero, enemy, myAttackRange) ~= nil then
 			local spillNPC = TA.TApsiBladesSpill(myHero, enemy, myAttackRange)
+
 			Player.AttackTarget(Players.GetLocal(), myHero, spillNPC, false)
 			return
 		else
-			if TA.TApsiBladesSpillBestPos(myHero, enemy, myAttackRange, Menu.GetValue(TA.harrasRange)):__tostring() ~= Vector():__tostring() then
+			if TA.TApsiBladesSpillBestPos(myHero, enemy, myAttackRange, Menu.GetValue(TA.harrasRange)):__tostring() ~= Vector(0,0,0):__tostring() then
 				local movePos = TA.TApsiBladesSpillBestPos(myHero, enemy, myAttackRange, Menu.GetValue(TA.harrasRange))
-				NPC.MoveTo(myHero, movePos, false, false)
-				return
+				if math.abs(movePos:GetX())<7300 and math.abs(movePos:GetY())<7100 and movePos:GetZ()<500 then
+					NPC.MoveTo(myHero, movePos, false, false)
+					return
+				end
 			end
 		end
 	end	
@@ -172,20 +201,20 @@ end
 
 function TA.TApsiBladesSpillBestPos(myHero, enemy, myAttackRange, searchRange)
 
-	if not myHero then return Vector() end
-	if not enemy then return Vector() end
+	if not myHero then return Vector(0,0,0) end
+	if not enemy then return Vector(0,0,0) end
 
 	local myMana = NPC.GetMana(myHero)
 	local psiBlades = NPC.GetAbility(myHero, "templar_assassin_psi_blades")
-		if not psiBlades then return Vector() end
-		if Ability.GetLevel(psiBlades) < 1 then return Vector() end
+		if not psiBlades then return Vector(0,0,0) end
+		if Ability.GetLevel(psiBlades) < 1 then return Vector(0,0,0) end
 
 	local spillRange = Ability.GetLevelSpecialValueFor(psiBlades, "attack_spill_range")
 
 	local enemyPos = TA.castPrediction(myHero, enemy, 0.75 + (NetChannel.GetAvgLatency(Enum.Flow.FLOW_OUTGOING) * 2))
 
 	local npcs = Entity.GetUnitsInRadius(myHero, myAttackRange+searchRange, Enum.TeamType.TEAM_BOTH)
-		if next(npcs) == nil then return Vector() end
+		if not npcs or #npcs<1 then return Vector(0,0,0) end
 
 		local spillPos = Vector()
 		local minRange = 99999
@@ -215,11 +244,12 @@ function TA.TApsiBladesSpillBestPos(myHero, enemy, myAttackRange, searchRange)
 			end
 		end
 
-		if spillPos:__tostring() ~= Vector():__tostring() and minRange > 25 then
+		if spillPos:__tostring() ~= Vector():__tostring() and minRange > 25  then
 			return spillPos
+			
 		end
 
-	return Vector()
+	return Vector(0,0,0)
 
 end
 
@@ -236,11 +266,11 @@ function TA.TApsiBladesSpill(myHero, enemy, myAttackRange)
 	local spillRange = Ability.GetLevelSpecialValueFor(psiBlades, "attack_spill_range")
 
 	local npcs = Entity.GetUnitsInRadius(myHero, myAttackRange, Enum.TeamType.TEAM_BOTH)
-		if next(npcs) == nil then return end
+		if npcs == nil or #npcs < 1 then return end
 
 		local spillNPC
 			
-		for _, targetNPC in ipairs(npcs) do
+		for _, targetNPC in pairs(npcs) do
 			if targetNPC then
 				if Entity.IsNPC(targetNPC) and not Entity.IsDormant(targetNPC) and (NPC.IsCreep(targetNPC) or NPC.IsLaneCreep(targetNPC) or NPC.IsNeutral(targetNPC)) and Entity.IsAlive(targetNPC) and not NPC.IsWaitingToSpawn(targetNPC) then
 					if TA.isEnemyInSpillRange(myHero, targetNPC, enemy, spillRange) == true then
@@ -261,6 +291,36 @@ function TA.SleepReady(sleep)
 		return true
 	end
 	return false
+end
+
+function TA.OnDraw()
+    if not Menu.IsEnabled(TA.optionHints) then return end
+
+    local myHero = Heroes.GetLocal()
+
+    if not myHero or not Entity.IsAlive(myHero) then return end
+    if NPC.GetUnitName(myHero) ~= "npc_dota_hero_templar_assassin" then return end
+    local target = Input.GetNearestHeroToCursor(Entity.GetTeamNum(myHero), Enum.TeamType.TEAM_ENEMY)
+	if target and target ~= 0 then
+		Renderer.SetDrawColor(90, 255, 100)
+		if TA.TApsiBladesSpill(myHero, target, myAttackRange) ~= nil then
+			local spillNPC = TA.TApsiBladesSpill(myHero, target, myAttackRange)
+			local spill_npc_pos = Entity.GetAbsOrigin(spillNPC)
+
+		    local target_pos = Entity.GetAbsOrigin(target)
+                
+            local dir = spill_npc_pos - target_pos
+
+            dir:SetZ(0)
+            dir:Normalize()
+            dir:Scale(200)
+            local x1, y1, v = Renderer.WorldToScreen(spill_npc_pos)
+            local x2, y2 = Renderer.WorldToScreen(spill_npc_pos + dir)
+            if v  then
+            Renderer.DrawLine(x1, y1, x2, y2)
+            end
+		end
+	end
 end
 
 function TA.GetClosestPoint(A,  B,  P, segmentClamp)
@@ -308,50 +368,6 @@ function TA.noItemCastFor(sec)
 	TA.lastItemTick = os.clock()
 end
 
--- function TA.OnDraw()
--- 	if not Menu.IsEnabled(TA.option) or not Engine.IsInGame() or not Heroes.GetLocal() then return end
---     if not Menu.IsEnabled(TA.optionHints) then return end
---     local myHero = Heroes.GetLocal()
---     if not myHero or not Entity.IsAlive(myHero) then return end
---     if NPC.GetUnitName(myHero) ~= "npc_dota_hero_templar_assassin" then return end
---     local psiBlades = NPC.GetAbility(myHero, "templar_assassin_psi_blades")
-
---     if not psiBlades then return end
-
---     local spillRange = Ability.GetLevelSpecialValueFor(psiBlades, "attack_spill_range")
-
---     local myTeam = Entity.GetTeamNum(myHero)
---     local myPos = Entity.GetAbsOrigin(myHero)
---     local myAttackRange = 200
---     local myFarthestPossibleAttackRange = myAttackRange + spillRange
---     local enemies = Heroes.InRadius(myPos, myFarthestPossibleAttackRange, myTeam, Enum.TeamType.TEAM_ENEMY)
---     Renderer.SetDrawColor(255, 255, 255, 255)
--- 	if not enemies then return end
---     for k, enemy in ipairs(enemies) do
---         local enemyPos = Entity.GetAbsOrigin(enemy)
---         local units = NPCs.InRadius(enemyPos, spillRange, myTeam, Enum.TeamType.TEAM_BOTH)
-
---         for j, unit in pairs(units) do
---             if NPC.IsLaneCreep(unit) and not NPC.IsWaitingToSpawn(unit) then
---            		if Entity.IsSameTeam(unit,myHero) and Entity.GetMaxHealth(unit)/Entity.GetHealth(unit)<2 then return end
---                 local unitPos = Entity.GetAbsOrigin(unit)
-                
---                 local dir = unitPos - enemyPos
-
---                 dir:SetZ(0)
---                 dir:Normalize()
---                 dir:Scale(myAttackRange)
---                 local x1, y1, v = Renderer.WorldToScreen(unitPos)
---                 local x2, y2 = Renderer.WorldToScreen(unitPos + dir)
-
---                 if v then
---                 Renderer.DrawLine(x1, y1, x2, y2)
---                 end
---             end
---         end
---     end
--- end
-
 function TA.castPrediction(myHero, enemy, adjustmentVariable)
 
   if not myHero then return end
@@ -368,6 +384,15 @@ function TA.castPrediction(myHero, enemy, adjustmentVariable)
     else return enemyOrigin:__add(enemyRotation:Normalized():Scaled(NPC.GetMoveSpeed(enemy) * adjustmentVariable))
     end
   end
+end
+
+function TA.InNeutralCamp(pos)
+	local range = 150
+	for name, location in pairs(TA.CampLocation) do
+		local dis = location:__sub(pos):Length()
+		if dis <= range then return true end
+	end
+	return false
 end
 
 return TA
