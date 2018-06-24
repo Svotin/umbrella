@@ -7,12 +7,12 @@ Aggro.myhero = nil
 function Aggro.OnUpdate()
 	if not Engine.IsInGame() or not Heroes.GetLocal() then return end
 	Aggro.myhero = Heroes.GetLocal()
-	if not Aggro.myhero or not Entity.IsEntity(Aggro.myhero) then return end
+	if not Aggro.myhero or not Aggro.myhero == 0 then return end
 	if Menu.IsKeyDownOnce(Aggro.aggroKey) then
 		enemyHero = Input.GetNearestHeroToCursor(Entity.GetTeamNum(Aggro.myhero), Enum.TeamType.TEAM_ENEMY)
 		if enemyHero then
 			Player.AttackTarget(Players.GetLocal(), Aggro.myhero, enemyHero)
-			Player.PrepareUnitOrders(Players.GetLocal(), 10, nil, Vector(), nil, Enum.PlayerOrderIssuer.DOTA_ORDER_ISSUER_CURRENT_UNIT_ONLY, nil)
+			Player.HoldPosition(Players.GetLocal(), Aggro.myhero)
 			return
 		end
 	end
@@ -24,7 +24,7 @@ function Aggro.OnUpdate()
  				local alliedCreep = npc
 				if alliedCreep then
 					Player.AttackTarget(Players.GetLocal(), Aggro.myhero, alliedCreep)
-					Player.PrepareUnitOrders(Players.GetLocal(), 10, nil, Vector(), nil, Enum.PlayerOrderIssuer.DOTA_ORDER_ISSUER_CURRENT_UNIT_ONLY, nil)
+					Player.HoldPosition(Players.GetLocal(), Aggro.myhero)
 					return			
 				end
 			end
