@@ -90,7 +90,7 @@ function TA.TACombo(myHero, enemy)
 
 	local myMana = NPC.GetMana(myHero)
 	local psiBladesLvl = Ability.GetLevel(psiBlades)
-	myAttackRange = myAttackRange + (psiBladesLvl*60)
+	myAttackRange = NPC.GetAttackRange(myHero) + (psiBladesLvl*60)
 
 	local refractionModifier = NPC.GetModifier(myHero, "modifier_templar_assassin_refraction_damage")
 	local meldModifier = NPC.GetModifier(myHero, "modifier_templar_assassin_meld")
