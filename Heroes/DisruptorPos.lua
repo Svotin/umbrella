@@ -1,7 +1,7 @@
 local DisPos = {}
 
 DisPos.font = Renderer.LoadFont("Tahoma", 20, Enum.FontWeight.EXTRABOLD)
-DisPos.Enable = Menu.AddOptionBool({ "Hero Specific", "Disruptor" }, "Enable track pos", false)
+DisPos.Enable = Menu.AddOptionBool({ "Hero Specific", "Disruptor" }, "Enable", false)
 DisPos.optionKey = Menu.AddKeyOption({ "Hero Specific", "Disruptor", }, "Visible toggle key", Enum.ButtonCode.KEY_T)
 DisPos.Mode = Menu.AddOptionBool({ "Hero Specific", "Disruptor" }, "Show trace", false)
 
@@ -72,16 +72,6 @@ function DisPos.OnUpdate()
 	end
 
 	if not Menu.IsEnabled(DisPos.Enable) then
-		return
-	end
-
-	local myHero = Heroes.GetLocal()
-
-	if not myHero then
-		return
-	end
-	
-	if NPC.GetUnitName(myHero) ~= "npc_dota_hero_disruptor" then
 		return
 	end
 	if GameRules.GetGameTime() - switch_time < 0.5 then
