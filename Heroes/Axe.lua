@@ -206,7 +206,7 @@ function axe.Combo(myHero,enemy)
     enemy1 = nil
    return false
   end
-  if axe.SleepCheck(0.5, "attack") then
+  if axe.SleepCheck(0.5, "attack") and nearHero then
     Player.AttackTarget(Players.GetLocal(), axe.myHero, nearHero, false)
     axe.Sleep(0, "attack")
   end
