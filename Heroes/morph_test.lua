@@ -10,24 +10,27 @@ morph.AutoShift = Menu.AddOptionBool({"Hero Specific", "Morphling","Auto Shift"}
 morph.optionHeroMorphHPBalanceDeviation = Menu.AddOptionSlider({"Hero Specific", "Morphling", "Auto Shift" }, "HP Deviation", 50, 250, 50)
 
 morph.AutoShiftKey = Menu.AddKeyOption({"Hero Specific",  "Morphling", "Auto Shift"}, "Toggle Key", Enum.ButtonCode.KEY_8)
-morph.optionHeroMorphDrawBoardXPos = Menu.AddOptionSlider({ "Hero Specific", "Morphling","Auto Shift" }, "X-Pos Adjustment", -500, 500, 10)
+morph.optionHeroMorphDrawBoardXPos = Menu.AddOptionSlider({ "Hero Specific", "Morphling","Auto Shift" }, "X-Pos Adjustment", -500, 1500, 10)
 morph.optionHeroMorphDrawBoardYPos = Menu.AddOptionSlider({ "Hero Specific", "Morphling","Auto Shift"}, "Y-Pos Adjustment", -500, 760, 10)
 
 morph.AutoShiftBeforeGetStunned = Menu.AddOptionBool({"Hero Specific", "Morphling", "Auto Shift"}, "Auto Shift Before Get Stunned", false) 
 morph.AutoShiftBeforeGetStunnedAdd = Menu.AddOptionBool({"Hero Specific", "Morphling", "Auto Shift"}, "Add unstable abilities", false) 
 
 morph.myHero = nil
-morph.players = {}
+morph.players = { { } }
+morph.players_mark = {}
 Font = Renderer.LoadFont("Tahoma", 20, Enum.FontWeight.BOLD)
 FontForStatus = Renderer.LoadFont("Tahoma", 17, Enum.FontWeight.BOLD)
 morph.localDmg = 0
 morph.Toggler = true
-morph.lastTick = 0
+morph.lastTick = {[0] = 0, [1] = 0}
 morph.MorphBalanceToggler = true
 morph.MorphBalanceTimer = 0
 morph.MorphBalanceSelectedHP = 0
 morph.MorphBalanceSelected = 0
-
+castRange = 0
+ebladeDmg = 0
+strikeDmg = 0
 
 morph.dangerousAnimation = {
 	{"crush_anim", 355, false},
@@ -92,19 +95,36 @@ end
 
 function morph.OnUpdate()
 	if not Menu.IsEnabled(morph.optionEnable) or not Engine.IsInGame() or not Heroes.GetLocal() then 
-		for i = 0, 10 do
-      		if morph.players[i] then
-        		Menu.RemoveOption(morph.players[i]) 
-        		morph.players[i] = nil
+		for i = 1, Heroes.Count(), 1 do
+			local hero = Heroes.Get(i)
+      		if morph.players_mark[Hero.GetPlayerID(hero)] then
+        		Menu.RemoveOption(morph.players[Hero.GetPlayerID(hero)][0]) 
+        		morph.players[Hero.GetPlayerID(hero)][0] = nil
+        		morph.players[Hero.GetPlayerID(hero)][1] = nil
+        		morph.players[Hero.GetPlayerID(hero)][2] = nil
+        		morph.players[Hero.GetPlayerID(hero)][3] = nil
+        		morph.players_mark[Hero.GetPlayerID(hero)] = false
      		end
-    	end return 
+    	end 
+    	return 
     end
 	morph.myHero = Heroes.GetLocal()
 	local FHeroes = Heroes.GetAll()
 	if NPC.GetUnitName(morph.myHero) ~= "npc_dota_hero_morphling" then return end
--------------------------------------------------------------
+---- AUTO SHIFT BORD MOVING ----
+if Menu.IsEnabled(morph.AutoShift) then
+	if Input.IsKeyDown(Enum.ButtonCode.KEY_LEFT) and Menu.GetValue(morph.optionHeroMorphDrawBoardXPos) < 1495 then
+		Menu.SetValue(morph.optionHeroMorphDrawBoardXPos, (Menu.GetValue(morph.optionHeroMorphDrawBoardXPos)+5))
+	elseif Input.IsKeyDown(Enum.ButtonCode.KEY_RIGHT) and Menu.GetValue(morph.optionHeroMorphDrawBoardXPos) > -495 then
+		Menu.SetValue(morph.optionHeroMorphDrawBoardXPos, (Menu.GetValue(morph.optionHeroMorphDrawBoardXPos)-5))
+	elseif Input.IsKeyDown(Enum.ButtonCode.KEY_UP) and Menu.GetValue(morph.optionHeroMorphDrawBoardYPos) > -496 then
+		Menu.SetValue(morph.optionHeroMorphDrawBoardYPos, (Menu.GetValue(morph.optionHeroMorphDrawBoardYPos)-4))
+	elseif Input.IsKeyDown(Enum.ButtonCode.KEY_DOWN) and Menu.GetValue(morph.optionHeroMorphDrawBoardYPos) < 756 then
+		Menu.SetValue(morph.optionHeroMorphDrawBoardYPos, (Menu.GetValue(morph.optionHeroMorphDrawBoardYPos)+4))
+	end
+end
+-----------------------TOGGLERS------------------------------
 
--------------------------------------------------------------
 	if Menu.IsKeyDownOnce(morph.AutoShiftKey) then
 		if Menu.IsEnabled(morph.AutoShift) then
 			Menu.SetEnabled(morph.AutoShift, false)
@@ -127,10 +147,15 @@ function morph.OnUpdate()
 	end
 
 	if Menu.IsEnabled(morph.AutoKill) or Menu.IsEnabled(morph.Display) then
-		for i = 1, Heroes.Count() do
+		for i = 1, Heroes.Count(), 1 do
    			local hero = Heroes.Get(i)
-   			if not Entity.IsSameTeam(morph.myHero, hero) and not morph.players[Hero.GetPlayerID(hero)] and hero ~= morph.myHero then 
-   				morph.players[Hero.GetPlayerID(hero)] = Menu.AddOptionBool({"Hero Specific", "Morphling", "EBlade Auto Kill"}, string.upper(string.sub(NPC.GetUnitName(hero), 15)), true)
+   			if not Entity.IsSameTeam(morph.myHero, hero) and hero ~= morph.myHero and not morph.players_mark[Hero.GetPlayerID(hero)] then 
+   				morph.players[Hero.GetPlayerID(hero)] = {}
+   				morph.players[Hero.GetPlayerID(hero)][0] = Menu.AddOptionBool({"Hero Specific", "Morphling", "EBlade Auto Kill"}, string.upper(string.sub(NPC.GetUnitName(hero), 15)), true)
+   				morph.players[Hero.GetPlayerID(hero)][1] = hero
+   				morph.players[Hero.GetPlayerID(hero)][2] = 0 -- total damage
+   				morph.players[Hero.GetPlayerID(hero)][3] = 0 -- ethereal blade damage only
+   				morph.players_mark[Hero.GetPlayerID(hero)] = true
    				return
    			end
    		end 
@@ -138,58 +163,74 @@ function morph.OnUpdate()
    	if Menu.IsEnabled(morph.AutoKill) or Menu.IsEnabled(morph.Display) then
    		local strike = NPC.GetAbilityByIndex(morph.myHero, 1)
    		local eblade = NPC.GetItem(morph.myHero, "item_ethereal_blade", true)
-		local agility = Hero.GetAgilityTotal(morph.myHero)
-		local strenght = Hero.GetStrengthTotal(morph.myHero)
-		local intellect = Hero.GetIntellectTotal(morph.myHero)
-		local strikeDmg =  getStrikeDmg(agility, strenght, strike)
-		local totalMana = 0
-		local castRange = 0
-		local ebladeMultiplier = 1
-		local ebladeDmg = 0
-
-		if strikeDmg ~= 0 then 
-			if Ability.GetManaCost(strike)<= NPC.GetMana(morph.myHero) then
-				totalMana = totalMana + Ability.GetManaCost(strike)
-				castRange = Ability.GetCastRange(strike)
-			end
-		end
-		if eblade and Ability.IsReady(eblade) then
-			if Ability.GetManaCost(eblade)+totalMana <= NPC.GetMana(morph.myHero) then
-				ebladeMultiplier = 1.4
-				ebladeDmg = 75 + (2 * agility)
-				totalMana = totalMana + Ability.GetManaCost(eblade)
-				castRange = Ability.GetCastRange(eblade)
-			end
-		end
-		if ebladeDmg == 0 and strikeDmg == 0 then  morph.localDmg = 0 return end
-		local intMultiplier = ((0.069 * intellect) / 100) + 1
-		morph.localDmg = ((strikeDmg+ebladeDmg)*ebladeMultiplier)*intMultiplier
-		local ebladeOnly = ebladeDmg*intMultiplier*ebladeMultiplier
-		if not Menu.IsEnabled(morph.AutoKill) or not morph.SleepReady(1.0) then return end
-		for _,hero in pairs(FHeroes) do
-			if hero ~= nil and hero ~= 0 and Heroes.Contains(hero) and NPC.IsEntityInRange(morph.myHero, hero,castRange) and not Entity.IsSameTeam(hero,morph.myHero) then
-				if Entity.IsAlive(hero) and not Entity.IsDormant(hero) and not NPC.IsIllusion(hero) and Menu.IsEnabled(morph.players[Hero.GetPlayerID(hero)]) and morph.IsHasGuard(hero)=="nil" then
-					local totalDmg = morph.GetTotalDmg(hero, morph.localDmg, morph.myHero) - 2
-					local ebladeTotal = morph.GetTotalDmg(hero, ebladeOnly, morph.myHero) - 2	
-					if Entity.GetHealth(hero)+NPC.GetHealthRegen(hero) <= ebladeTotal then
-						if ebladeDmg > 0 then
-							Ability.CastTarget(eblade, hero)
-							morph.lastTick = os.clock()
-							break
-						end
-						return
-					elseif Entity.GetHealth(hero)+NPC.GetHealthRegen(hero) <= totalDmg  then 
-						if ebladeDmg > 0 then
-							Ability.CastTarget(eblade, hero)
-						end
-						if strikeDmg > 0 then 
-							Ability.CastTarget(strike, hero)
-							break
-						end 
-						return
-					end
+   		if morph.SleepReady(0.2, 1) then
+   			init_heroes_dmg(morph.myHero, eblade, strike)
+   			morph.lastTick[1] = os.clock()
+   		end
+   		if not morph.SleepReady(1.0, 0) then return end
+   		if not Entity.IsAlive(morph.myHero) then return end
+   		local heroes = Entity.GetHeroesInRadius(morph.myHero, castRange, Enum.TeamType.TEAM_ENEMY)
+   		if not heroes or #heroes < 1 then return end
+   		for i=1 ,#heroes do
+			if Entity.GetHealth(heroes[i])+NPC.GetHealthRegen(heroes[i]) <= morph.players[Hero.GetPlayerID(heroes[i])][3] then
+				if ebladeDmg > 0 then
+					Ability.CastTarget(eblade, heroes[i])
+					morph.lastTick[0] = os.clock()
+					break
 				end
+				return
+			elseif Entity.GetHealth(heroes[i]) + NPC.GetHealthRegen(heroes[i]) <= morph.players[Hero.GetPlayerID(heroes[i])][2] then 
+				if ebladeDmg > 0 then
+					Ability.CastTarget(eblade, heroes[i])
+				end
+				if strikeDmg > 0 then 
+					Ability.CastTarget(strike, heroes[i])
+					break
+				end 
+				return
 			end
+		end
+	end
+end
+
+function init_heroes_dmg(myHero, eblade, strike)
+	local agility = Hero.GetAgilityTotal(myHero)
+	local strenght = Hero.GetStrengthTotal(myHero)
+	local intellect = Hero.GetIntellectTotal(myHero)
+	strikeDmg =  getStrikeDmg(agility, strenght, strike)
+	local totalMana = 0
+	castRange = 0
+	local ebladeMultiplier = 1
+	ebladeDmg = 0
+	if strikeDmg ~= 0 then 
+		if Ability.GetManaCost(strike) <= NPC.GetMana(myHero) then
+			totalMana = totalMana + Ability.GetManaCost(strike)
+			castRange = Ability.GetCastRange(strike)
+		end
+	end
+	if eblade and Ability.IsReady(eblade) then
+		if Ability.GetManaCost(eblade)+totalMana <= NPC.GetMana(myHero) then
+			ebladeMultiplier = 1.4
+			ebladeDmg = 75 + (2 * agility)
+			totalMana = totalMana + Ability.GetManaCost(eblade)
+			castRange = Ability.GetCastRange(eblade)
+		end
+	end
+	if ebladeDmg == 0 and strikeDmg == 0 then  morph.localDmg = 0 return end
+	local intMultiplier = ((0.069 * intellect) / 100) + 1
+	morph.localDmg = ((strikeDmg+ebladeDmg)*ebladeMultiplier)*intMultiplier
+	local ebladeOnly = ebladeDmg*intMultiplier*ebladeMultiplier
+	if not Menu.IsEnabled(morph.AutoKill)  then return end
+	for i=1,#morph.players do
+		if morph.players[i][1] ~= nil and morph.players[i][1] ~= 0 and Heroes.Contains(morph.players[i][1])
+			and Entity.IsAlive(morph.players[i][1]) and not Entity.IsDormant(morph.players[i][1]) and Menu.IsEnabled(morph.players[i][0]) and morph.IsHasGuard(morph.players[i][1])=="nil" then
+				local totalDmg = morph.GetTotalDmg(morph.players[i][1], morph.localDmg, myHero) - 2
+				morph.players[i][2] = totalDmg
+				local ebladeTotal = morph.GetTotalDmg(morph.players[i][1], ebladeOnly, myHero) - 2	
+				morph.players[i][3] = ebladeTotal
+		else
+			morph.players[i][2] = 0
+			morph.players[i][3] = 0
 		end
 	end
 end
@@ -356,25 +397,7 @@ function morph.OnDraw()
 	if not Menu.IsEnabled(morph.optionEnable) then return end
 	if morph.myHero == nil or NPC.GetUnitName(morph.myHero) ~= "npc_dota_hero_morphling" then return end
 	local autoKillMode
-	local x, y = Renderer.GetScreenSize()
-	local x1, y1
-	if x == 1920 and y == 1080 then
-		x, y = 1150, 910
-	elseif x== 1600 and y == 900 then
-		x, y = 950, 755
-	elseif x== 1366 and y == 768 then
-		x, y = 805, 643
-	elseif x==1280 and y == 720 then
-		x, y = 752, 600
-	elseif x==1280 and y == 1024 then
-		x, y = 800, 860
-	elseif x==1440 and y == 900 then
-		x, y = 870, 755
-	elseif x== 1680 and y == 1050 then
-		x, y = 1025, 885
-	end
-	x1 = x
-	y1 = y-20
+	x, y = 1150, 910
 	if Menu.IsEnabled(morph.AutoKill)  then
 		Renderer.SetDrawColor(255, 255, 0)
 		autoKillMode = "ON"		
@@ -385,31 +408,33 @@ function morph.OnDraw()
 	Renderer.DrawText(Font, x, y, "AutoKill: ["..autoKillMode.."]")
 	---- Damage Info ----
 	if Menu.IsEnabled(morph.Display) then
-		local FHeroes = Heroes.GetAll()
-		for _,hero in pairs(FHeroes) do
-			if hero ~= nil and hero ~= 0 and Heroes.Contains(hero) and not Entity.IsSameTeam(hero,morph.myHero) then
-				if Entity.IsAlive(hero) and not Entity.IsDormant(hero) and not NPC.IsIllusion(hero) then
-					local totalDmg = morph.GetTotalDmg(hero, morph.localDmg, morph.myHero) - 2
-					local dmg = Entity.GetHealth(hero) - totalDmg 
+   		local nearHero = Input.GetNearestHeroToCursor(Entity.GetTeamNum(morph.myHero), Enum.TeamType.TEAM_ENEMY)
+	   	if nearHero then  
+		   	if not NPC.IsPositionInRange(nearHero, Input.GetWorldCursorPos(), 450, 0) then nearHero = 0 end
+				for i=1,#morph.players do
+				if morph.players[i][1] ~= nil and morph.players[i][1] ~= 0 and Heroes.Contains(morph.players[i][1]) and Entity.IsAlive(morph.players[i][1]) and not Entity.IsDormant(morph.players[i][1])
+					and (NPC.IsEntityInRange(morph.myHero, morph.players[i][1], 2000) or (morph.players[i][1] == nearHero)) then
+						local totalDmg = morph.players[i][2]
+						local dmg = Entity.GetHealth(morph.players[i][1]) - totalDmg 
 
-					if dmg > 0 then
-						Renderer.SetDrawColor(255, 0, 0)
-					else
-						Renderer.SetDrawColor(90, 255, 100)
-					end
-					local pos = Entity.GetAbsOrigin(hero)
-		            local x, y, visible = Renderer.WorldToScreen(pos)
+						if dmg > 0 then
+							Renderer.SetDrawColor(255, 0, 0)
+						else
+							Renderer.SetDrawColor(90, 255, 100)
+						end
+						local pos = Entity.GetAbsOrigin(morph.players[i][1])
+			            local x, y, visible = Renderer.WorldToScreen(pos)
 
-		            if visible and pos then
-		                Renderer.DrawText(FontForStatus, x, y-12, math.abs(math.floor(dmg)), 1)
-		            end
+			            if visible and pos then
+			                Renderer.DrawText(FontForStatus, x, y-12, math.abs(math.floor(dmg)), 1)
+			            end
 				end
 			end
 		end
 	end
 	if Menu.IsEnabled(morph.AutoShift) then
 			morph.MorphDrawBalanceBoard(morph.myHero)
-		end
+	end
 end
 
 
@@ -514,20 +539,6 @@ function morph.MorphBalaceHP(myHero)
 		else
 			shouldToggleAGI = false
 		end
-
-	-- else
-	-- 	if myMAXHP - myHP <= 50 then
-	-- 		if myMAXHP - targetHP >= 50 then
-	-- 			shouldToggleAGI = true
-	-- 		elseif targetHP - myHP >= 50 then
-	-- 			shouldToggleStr = true
-	-- 		else
-	-- 			shouldToggleAGI = false
-	-- 			shouldToggleStr = false
-	-- 		end
-	-- 	end
-	-- end
-	
 
 	if shouldToggleStr then
 		if not Ability.GetToggleState(morphSTR) then
@@ -665,8 +676,8 @@ function morph.OnMenuOptionChange(option, oldValue, newValue)
 end
 
 
-function morph.SleepReady(sleep)
-	if (os.clock() - morph.lastTick) >= sleep then
+function morph.SleepReady(sleep, index)
+	if (os.clock() - morph.lastTick[index]) >= sleep then
 		return true
 	end
 	return false
