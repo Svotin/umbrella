@@ -9,12 +9,20 @@ local pos = {}
 local enabled = false
 local switch_time = 0
 local time = 4
+local curr_hero_is_dis = false
 
 function DisPos.OnGameStart()
+	DisPos.Init()
+end
+
+function DisPos.OnGameEnd()
 	pos = {}
 	enabled = false
 	switch_time = 0
+	curr_hero_is_dis = false
 end
+
+
 
 function DisPos.DrawCircle(UnitPos, radius)
 	local x1, y1 = Renderer.WorldToScreen(UnitPos)
@@ -50,19 +58,24 @@ function DisPos.DrawTrace(Index)
 	end	
 end
 
+function DisPos.Init()
+	if Engine.IsInGame() then
+		myHero = Heroes.GetLocal()
+		heroName = NPC.GetUnitName(myHero)
+		if heroName and heroName == "npc_dota_hero_disruptor" then
+			curr_hero_is_dis = false
+		end
+	end
+end
+
+DisPos.Init()
 
 function DisPos.OnUpdate()
-	if not Menu.IsEnabled(DisPos.Enable) then
+	if not Menu.IsEnabled(DisPos.Enable) or not Engine.IsInGame() then
 		return
 	end
-
-	local myHero = Heroes.GetLocal()
 
 	if not myHero then
-		return
-	end
-
-	if NPC.GetUnitName(myHero) ~= "npc_dota_hero_disruptor" then
 		return
 	end
 
@@ -86,7 +99,7 @@ function DisPos.OnUpdate()
 	for i = 1, Heroes.Count() do
 		local Unit = Heroes.Get(i)
 		local UnitPos = Entity.GetAbsOrigin(Unit)
-		if  Entity.IsHero(Unit)
+		if Entity.IsHero(Unit)
 		and Entity.GetTeamNum(Unit) ~= Entity.GetTeamNum(myHero)
 		and not NPC.IsIllusion(Unit)
 		then
@@ -106,8 +119,8 @@ function DisPos.OnUpdate()
 				end
 				local last_pos = pos[Entity.GetIndex(Unit)][math.floor(GameRules.GetGameTime() * 10) / 10 - time]
 				if last_pos ~= nil then
-					local x, y, visible = Renderer.WorldToScreen(last_pos)
-					if visible then
+					local x, y = Renderer.WorldToScreen(last_pos)
+					if DisPos.IsOnScreen(x, y) then
 						Renderer.SetDrawColor(255, 255, 255, 255)
 						DisPos.DrawCircle(last_pos, 48)
 						Renderer.DrawText(DisPos.font, x, y, string.sub(NPC.GetUnitName(Unit), 15), 0)
@@ -117,4 +130,12 @@ function DisPos.OnUpdate()
 		end
 	end
 end
+
+function DisPos.IsOnScreen(x, y)
+  if (x<0) or (y<0) then return false; end;
+  if (x>Renderer.ScreenWidth) or (y>Renderer.ScreenHeight) then return false; end;
+  return true;
+end;
+
+
 return DisPos
