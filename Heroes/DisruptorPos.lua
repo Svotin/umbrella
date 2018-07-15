@@ -71,7 +71,7 @@ end
 DisPos.Init()
 
 function DisPos.OnUpdate()
-	if not Menu.IsEnabled(DisPos.Enable) or not Engine.IsInGame() then
+	if not Menu.IsEnabled(DisPos.Enable) or not Engine.IsInGame() or not curr_hero_is_dis then
 		return
 	end
 
