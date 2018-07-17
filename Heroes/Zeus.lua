@@ -2,6 +2,7 @@ Zeus = {}
 
 
 Zeus.optionEnable = Menu.AddOptionBool({"Hero Specific", "Zeus"}, "Enable", false)
+Zeus.optionIcon = Menu.AddOptionIcon({ "Hero Specific","Zeus"}, "panorama/images/heroes/icons/npc_dota_hero_zuus_png.vtex_c")
 Zeus.TPcancel = Menu.AddOptionBool({"Hero Specific", "Zeus"}, "Cancel TP's", false)
 Zeus.autoUlt = Menu.AddOptionBool({"Hero Specific", "Zeus"}, "Auto Wrath", false)
 Zeus.KillForUlt = Menu.AddOptionSlider({"Hero Specific", "Zeus"}, "Minimum Killed by Wrath", 0, 5, 1)

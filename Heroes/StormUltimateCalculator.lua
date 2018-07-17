@@ -1,6 +1,7 @@
 local StormUltCalculator = {}
 
 StormUltCalculator.optionEnable = Menu.AddOptionBool({"Hero Specific", "Storm Spirit"}, "Enable",false)
+StormUltCalculator.optionIcon = Menu.AddOptionIcon({ "Hero Specific","Storm Spirit"}, "panorama/images/heroes/icons/npc_dota_hero_storm_spirit_png.vtex_c")
 StormUltCalculator.drawPlace = Menu.AddOptionCombo({"Hero Specific", "Storm Spirit"}, "Drawing Type", {"Static", "Depending on cursor"}, 0)
 StormUltCalculator.optionDrawingX = Menu.AddOptionSlider({"Hero Specific", "Storm Spirit"},"X coord", 1, 100, 1)
 StormUltCalculator.optionDrawingY = Menu.AddOptionSlider({"Hero Specific", "Storm Spirit"},"Y coord", 1, 100, 1)

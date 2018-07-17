@@ -2,6 +2,7 @@ local DisPos = {}
 
 DisPos.font = Renderer.LoadFont("Tahoma", 20, Enum.FontWeight.EXTRABOLD)
 DisPos.Enable = Menu.AddOptionBool({ "Hero Specific", "Disruptor" }, "Enable", false)
+DisPos.optionIcon = Menu.AddOptionIcon({ "Hero Specific", "Disruptor" }, "panorama/images/heroes/icons/npc_dota_hero_disruptor_png.vtex_c")
 DisPos.optionKey = Menu.AddKeyOption({ "Hero Specific", "Disruptor", }, "Visible toggle key", Enum.ButtonCode.KEY_T)
 DisPos.Mode = Menu.AddOptionBool({ "Hero Specific", "Disruptor" }, "Show trace", false)
 

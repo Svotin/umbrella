@@ -1,6 +1,7 @@
 TA = {}
 
 TA.option = Menu.AddOptionBool({"Hero Specific", "Templar Assassin"}, "Enable", false)
+TA.optionIcon = Menu.AddOptionIcon({ "Hero Specific","Templar Assassin"}, "panorama/images/heroes/icons/npc_dota_hero_templar_assassin_png.vtex_c")
 TA.optionBlink = Menu.AddOptionBool({"Hero Specific", "Templar Assassin","Items"}, "Blink Dagger", false)
 TA.HarrasKey = Menu.AddKeyOption({"Hero Specific", "Templar Assassin"}, "Harras Key", Enum.ButtonCode.KEY_C)
 TA.comboKey = Menu.AddKeyOption({"Hero Specific", "Templar Assassin"}, "Combo Key", Enum.ButtonCode.KEY_V)

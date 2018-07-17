@@ -1,6 +1,5 @@
 local Lion1222112 = {}
 Lion1222112.optionEnable = Menu.AddOptionBool({"TheCrazy88"}, "AutoFinger", false)
-
 function Lion1222112.OnUpdate()
 	if not Menu.IsEnabled(Lion1222112.optionEnable) then return end
 	local myHero = Heroes.GetLocal()

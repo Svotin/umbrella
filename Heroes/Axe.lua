@@ -1,6 +1,7 @@
 local axe = {}
 
 axe.optionEnable = Menu.AddOptionBool({"Hero Specific", "Axe"}, "Enable", false)
+axe.optionIcon = Menu.AddOptionIcon({"Hero Specific", "Axe"}, "panorama/images/heroes/icons/npc_dota_hero_axe_png.vtex_c")
 axe.blinkRadius = Menu.AddOptionBool({"Hero Specific", "Axe"}, "Range of the Blink Distance", false)
 axe.optionAutoUltEnable = Menu.AddOptionBool({"Hero Specific", "Axe", "Auto Culling"}, "Enable", false)
 axe.customRange = Menu.AddOptionSlider({"Hero Specific", "Axe", "Auto Culling"}, "Range to Target", 120, 300, 120)

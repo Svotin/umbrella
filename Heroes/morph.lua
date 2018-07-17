@@ -1,6 +1,7 @@
 local Morphling = {}
 
 Morphling.optionEnable = Menu.AddOptionBool({"Hero Specific", "Morphling"}, "Enable", false)
+Morphling.optionIcon = Menu.AddOptionIcon({ "Hero Specific", "Morphling" }, "panorama/images/heroes/icons/npc_dota_hero_morphling_png.vtex_c")
 Morphling.maxWaveRange =  Menu.AddOptionBool({"Hero Specific", "Morphling"}, "Max Waveform Range", false)
 Morphling.AutoKill = Menu.AddOptionBool({"Hero Specific", "Morphling", "EBlade Auto Kill"}, "Enable", false)
 Morphling.AutoKillKey = Menu.AddKeyOption({"Hero Specific",  "Morphling", "EBlade Auto Kill"}, "Toggle Key", Enum.ButtonCode.KEY_0)
