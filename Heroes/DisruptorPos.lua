@@ -11,6 +11,7 @@ local enabled = false
 local switch_time = 0
 local time = 4
 local curr_hero_is_dis = false
+local myHero = nil
 
 function DisPos.OnGameStart()
 	DisPos.Init()
@@ -64,7 +65,7 @@ function DisPos.Init()
 		myHero = Heroes.GetLocal()
 		heroName = NPC.GetUnitName(myHero)
 		if heroName and heroName == "npc_dota_hero_disruptor" then
-			curr_hero_is_dis = false
+			curr_hero_is_dis = true
 		end
 	end
 end
@@ -72,6 +73,7 @@ end
 DisPos.Init()
 
 function DisPos.OnUpdate()
+	
 	if not Menu.IsEnabled(DisPos.Enable) or not Engine.IsInGame() or not curr_hero_is_dis then
 		return
 	end
