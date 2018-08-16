@@ -1,19 +1,23 @@
 local StormSpirit = {}
 
-StormSpirit.optionEnable = Menu.AddOptionBool({"Hero Specific", "Storm Spirit"}, "Enable",false)
+StormSpirit.optionEnable = Menu.AddOptionBool({"Hero Specific", "Storm Spirit"}, "Enable", false)
 StormSpirit.ComboKey = Menu.AddKeyOption({"Hero Specific", "Storm Spirit"}, "Combo Key", Enum.ButtonCode.KEY_V)
 StormSpirit.NearestTarget =  Menu.AddOptionSlider({"Hero Specific", "Storm Spirit"}, "Closest to mouse range", 200, 800, 100)
+StormSpirit.UltOffsetPrediction =  Menu.AddOptionSlider({"Hero Specific", "Storm Spirit"}, "Range to enemy for ult", -300, 300, 0)
+StormSpirit.checkLinken = Menu.AddOptionBool({"Hero Specific", "Storm Spirit"}, "Break Linken with Vortex", false)
 StormSpirit.optionHex = Menu.AddOptionBool({"Hero Specific", "Storm Spirit", "Items"}, "Skythe of Vyse", false)
+Menu.AddOptionIcon(StormSpirit.optionHex, "panorama/images/items/sheepstick_png.vtex_c")
 StormSpirit.optionShiva = Menu.AddOptionBool({"Hero Specific", "Storm Spirit", "Items"}, "Shiva's Guard", false)
+Menu.AddOptionIcon(StormSpirit.optionShiva, "panorama/images/items/shivas_guard_png.vtex_c")
 StormSpirit.optionOrchid = Menu.AddOptionBool({"Hero Specific", "Storm Spirit", "Items"}, "Orchid/Bloodthorn", false)
+Menu.AddOptionIcon(StormSpirit.optionOrchid, "panorama/images/items/bloodthorn_png.vtex_c")
 StormSpirit.optionNullifier = Menu.AddOptionBool({"Hero Specific", "Storm Spirit", "Items"}, "Nullifier", false)
+Menu.AddOptionIcon(StormSpirit.optionNullifier, "panorama/images/items/nullifier_png.vtex_c")
 StormSpirit.manaThreshold =  Menu.AddOptionSlider({"Hero Specific", "Storm Spirit"}, "Dont use ult onto themselves then mana less than", 5, 100, 30)
-StormSpirit.targetIndicator = Menu.AddOptionBool({"Hero Specific", "Storm Spirit"}, "Target Indicator",false)
+StormSpirit.targetIndicator = Menu.AddOptionBool({"Hero Specific", "Storm Spirit"}, "Target Indicator", false)
 StormSpirit.optionIcon = Menu.AddOptionIcon({ "Hero Specific","Storm Spirit"}, "panorama/images/heroes/icons/npc_dota_hero_storm_spirit_png.vtex_c")
-StormSpirit.drawing = Menu.AddOptionBool({"Hero Specific", "Storm Spirit"}, "Calculator",false)
+StormSpirit.drawing = Menu.AddOptionBool({"Hero Specific", "Storm Spirit"}, "Calculator", false)
 StormSpirit.drawPlace = Menu.AddOptionCombo({"Hero Specific", "Storm Spirit"}, "Drawing Type", {"Static", "Depending on cursor"}, 0)
-StormSpirit.optionDrawingX = Menu.AddOptionSlider({"Hero Specific", "Storm Spirit"},"X Coord", 1, 100, 1)
-StormSpirit.optionDrawingY = Menu.AddOptionSlider({"Hero Specific", "Storm Spirit"},"Y Coord", 1, 100, 1)
 
 StormSpirit.fontItem = Renderer.LoadFont("Arial", 18, Enum.FontWeight.EXTRABOLD)
 
@@ -36,8 +40,8 @@ local arcaneRune = false
 local kaya = false
 local cm_reduction = false
 
-local manaStartUltimatePerc  = 0
-local manaStartUltimateConst = 0
+local manaStartUltimatePerc  = 8
+local manaStartUltimateConst = 30
 
 local w, h = 0
 local x = 0
@@ -48,29 +52,30 @@ local loss_mana = 0
 local time_ultimate_to_point = 0
 local damage = 0
 local enemy = 0
+StormSpirit.optionDrawingX = 20
+StormSpirit.optionDrawingY = 20
 
 
 local targetParticle = 0
 
 
-
-
 function StormSpirit.OnUpdate()
 	if not Menu.IsEnabled(StormSpirit.optionEnable) or not Engine.IsInGame() then return end
 	if not myHero then
+		StormSpirit.Init()
 		return
 	end
 	if heroName ~= "npc_dota_hero_storm_spirit" then return end
 ---------------------------------------------------------------------------------------------------------------------------
 	if Menu.GetValue(StormSpirit.drawPlace) == 0 then
-		if Input.IsKeyDown(Enum.ButtonCode.KEY_RIGHT) and Menu.GetValue(StormSpirit.optionDrawingX) < 100 then
-			Menu.SetValue(StormSpirit.optionDrawingX, (Menu.GetValue(StormSpirit.optionDrawingX)+1))
-		elseif Input.IsKeyDown(Enum.ButtonCode.KEY_LEFT) and Menu.GetValue(StormSpirit.optionDrawingX) > 1 then
-			Menu.SetValue(StormSpirit.optionDrawingX, (Menu.GetValue(StormSpirit.optionDrawingX)-1))
-		elseif Input.IsKeyDown(Enum.ButtonCode.KEY_UP) and Menu.GetValue(StormSpirit.optionDrawingY) > 1 then
-			Menu.SetValue(StormSpirit.optionDrawingY, (Menu.GetValue(StormSpirit.optionDrawingY)-1))
-		elseif Input.IsKeyDown(Enum.ButtonCode.KEY_DOWN) and Menu.GetValue(StormSpirit.optionDrawingY) < 100 then
-			Menu.SetValue(StormSpirit.optionDrawingY, (Menu.GetValue(StormSpirit.optionDrawingY)+1))
+		if Input.IsKeyDown(Enum.ButtonCode.KEY_RIGHT) and StormSpirit.optionDrawingX < 100 then
+			StormSpirit.optionDrawingX = StormSpirit.optionDrawingX+1
+		elseif Input.IsKeyDown(Enum.ButtonCode.KEY_LEFT) and StormSpirit.optionDrawingX > 1 then
+			StormSpirit.optionDrawingX = StormSpirit.optionDrawingX-1
+		elseif Input.IsKeyDown(Enum.ButtonCode.KEY_UP) and StormSpirit.optionDrawingY > 1 then
+			StormSpirit.optionDrawingY = StormSpirit.optionDrawingY-1
+		elseif Input.IsKeyDown(Enum.ButtonCode.KEY_DOWN) and StormSpirit.optionDrawingY < 100 then
+			StormSpirit.optionDrawingY = StormSpirit.optionDrawingY+1
 		end
 	end
 ---------------------------------------------------------------------------------------------------------------------------
@@ -106,8 +111,6 @@ function StormSpirit.GetInfo(hero)
 	if not aghanim and (NPC.HasModifier(myHero, "modifier_item_ultimate_scepter") or NPC.HasModifier(myHero, "modifier_item_ultimate_scepter_consumed")) then
 		aghanim = true
 	end
-	manaStartUltimatePerc = Ability.GetLevelSpecialValueForFloat(ult, "ball_lightning_initial_mana_percentage")
-	manaStartUltimateConst = Ability.GetLevelSpecialValueForFloat(ult, "ball_lightning_initial_mana_base")
 	StormSpirit.GetItems(hero)
 
 	sleep_after_gameinfo_upd = os.clock()
@@ -128,10 +131,10 @@ local sleep_after_cast = 0
 local sleep_after_attack = 0
 function StormSpirit.Combo(mana)
     enemy = Input.GetNearestHeroToCursor(myTeam, Enum.TeamType.TEAM_ENEMY)
-    if not enemy or enemy == 0 then return end
+    if not enemy or enemy == 0 then enemy = nil return end
     local enemy_origin = Entity.GetAbsOrigin(enemy)
     local cursor_pos = Input.GetWorldCursorPos()
-	if (cursor_pos - enemy_origin):Length2D() > Menu.GetValue(StormSpirit.NearestTarget) then return end
+	if (cursor_pos - enemy_origin):Length2D() > Menu.GetValue(StormSpirit.NearestTarget) then enemy = nil return end
 	local in_ult =  NPC.HasModifier(myHero, "modifier_storm_spirit_ball_lightning") 
 	if in_ult then
 		sleep_after_cast = os.clock()
@@ -140,6 +143,14 @@ function StormSpirit.Combo(mana)
 	local range_to_enemy = (my_origin - enemy_origin):Length2D() 
 	local protection = StormSpirit.checkProtection(enemy)
 	if range_to_enemy < 450 then
+		if vortex and Ability.IsReady(vortex) and Ability.IsCastable(vortex, mana) then
+			if not aghanim and (not protection or Menu.IsEnabled(StormSpirit.checkLinken)) then
+				Ability.CastTarget(vortex, enemy)
+			else
+				Ability.CastNoTarget(vortex)
+			end
+			sleep_after_cast = os.clock()
+		end
 		StormSpirit.UseItems(enemy,mana,protection)
     	if NPC.HasModifier(myHero, "modifier_storm_spirit_overload") or protection == "IMMUNE" then
     		if StormSpirit.SleepReady(0.1, sleep_after_attack)  then 
@@ -162,9 +173,9 @@ function StormSpirit.Combo(mana)
 	    			local ult_pos = my_origin
 	    			if range_to_enemy > 350 then
 	    				if NPC.IsRunning(enemy) then
-	    					ult_pos = (enemy_origin + (my_origin - enemy_origin):Normalized():Scaled(100))
+	    					ult_pos = (enemy_origin + (my_origin - enemy_origin):Normalized():Scaled(Menu.GetValue(StormSpirit.UltOffsetPrediction)*-1))
 	    				else
-	    					ult_pos = (enemy_origin + (my_origin - enemy_origin):Normalized():Scaled(250))
+	    					ult_pos = (enemy_origin + (my_origin - enemy_origin):Normalized():Scaled(Menu.GetValue(StormSpirit.UltOffsetPrediction)*-1))
 	    				end
 	    			elseif mana * 100 / NPC.GetMaxMana(myHero) < Menu.GetValue(StormSpirit.manaThreshold) then
 	    				return
@@ -181,10 +192,10 @@ function StormSpirit.Combo(mana)
     else
     	if ult and Ability.IsReady(ult) and Ability.IsCastable(ult, mana) and StormSpirit.SleepReady(0.4, sleep_after_cast) then
     		local time_to_enemy, mana_loss = StormSpirit.calc(myHero, mana, enemy_origin)
-    		local scale = 250
+    		local scale = Menu.GetValue(StormSpirit.UltOffsetPrediction)*-1
     		if NPC.IsRunning(enemy) then
     			enemy_origin = StormSpirit.castPrediction(myHero, enemy, enemy_origin, time_to_enemy+(NetChannel.GetAvgLatency(Enum.Flow.FLOW_INCOMING) + NetChannel.GetAvgLatency(Enum.Flow.FLOW_OUTGOING)))
-    			scale = -100
+    			scale = Menu.GetValue(StormSpirit.UltOffsetPrediction)*-1
     		end
     		ult_pos = (enemy_origin + (my_origin - enemy_origin):Normalized():Scaled(scale))
 			Ability.CastPosition(ult, ult_pos, true)
@@ -203,16 +214,16 @@ function StormSpirit.UseItems(enemy,mana, protection)
 			Ability.CastTarget(hex, enemy)
 			return
 		end
+		if orchid and Menu.IsEnabled(StormSpirit.optionOrchid) and Ability.IsReady(orchid) and Ability.IsCastable(orchid,mana) then
+			Ability.CastTarget(orchid, enemy)
+			return
+		end
 		if shiva and Menu.IsEnabled(StormSpirit.optionShiva) and Ability.IsReady(shiva) and Ability.IsCastable(shiva,mana) then
 			Ability.CastNoTarget(shiva)
 			return
 		end
 		if null and Menu.IsEnabled(StormSpirit.optionNullifier) and Ability.IsReady(null) and Ability.IsCastable(null,mana) then
 			Ability.CastTarget(null, enemy)
-			return
-		end
-		if orchid and Menu.IsEnabled(StormSpirit.optionOrchid) and Ability.IsReady(orchid) and Ability.IsCastable(orchid,mana) then
-			Ability.CastTarget(orchid, enemy)
 			return
 		end
 	end
@@ -262,8 +273,8 @@ function StormSpirit.calc(myHero, myMana, pos)
 	local regen = NPC.GetManaRegen(myHero)
 	if Menu.GetValue(StormSpirit.drawPlace) == 0 then
 		w, h = Renderer.GetScreenSize()
-		x = Menu.GetValue(StormSpirit.optionDrawingX) / 100
-		y = Menu.GetValue(StormSpirit.optionDrawingY) / 100
+		x = StormSpirit.optionDrawingX / 100
+		y = StormSpirit.optionDrawingY / 100
 	else
 		w, h = Input.GetCursorPos()
 		x = 1
@@ -370,6 +381,9 @@ end
 function StormSpirit.Init()
 	if Engine.IsInGame() then
 		myHero = Heroes.GetLocal()
+		if not myHero then 
+			return
+		end
 		heroName = NPC.GetUnitName(myHero)
 		myPlayer = Players.GetLocal()
 		cm_in_team = StormSpirit.FindCM()
