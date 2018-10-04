@@ -5,6 +5,7 @@ StormSpirit.ComboKey = Menu.AddKeyOption({"Hero Specific", "Storm Spirit"}, "Com
 StormSpirit.NearestTarget =  Menu.AddOptionSlider({"Hero Specific", "Storm Spirit"}, "Closest to mouse range", 200, 800, 100)
 StormSpirit.UltOffsetPrediction =  Menu.AddOptionSlider({"Hero Specific", "Storm Spirit"}, "Range to enemy for ult", -300, 300, 0)
 StormSpirit.checkLinken = Menu.AddOptionBool({"Hero Specific", "Storm Spirit"}, "Break Linken with Vortex", false)
+StormSpirit.checkHex = Menu.AddOptionBool({"Hero Specific", "Storm Spirit"}, "Stack hex & vortex", false)
 StormSpirit.optionHex = Menu.AddOptionBool({"Hero Specific", "Storm Spirit", "Items"}, "Skythe of Vyse", false)
 Menu.AddOptionIcon(StormSpirit.optionHex, "panorama/images/items/sheepstick_png.vtex_c")
 StormSpirit.optionShiva = Menu.AddOptionBool({"Hero Specific", "Storm Spirit", "Items"}, "Shiva's Guard", false)
@@ -13,6 +14,8 @@ StormSpirit.optionOrchid = Menu.AddOptionBool({"Hero Specific", "Storm Spirit", 
 Menu.AddOptionIcon(StormSpirit.optionOrchid, "panorama/images/items/bloodthorn_png.vtex_c")
 StormSpirit.optionNullifier = Menu.AddOptionBool({"Hero Specific", "Storm Spirit", "Items"}, "Nullifier", false)
 Menu.AddOptionIcon(StormSpirit.optionNullifier, "panorama/images/items/nullifier_png.vtex_c")
+StormSpirit.optionDagon = Menu.AddOptionBool({"Hero Specific", "Storm Spirit", "Items"}, "Dagon", false)
+Menu.AddOptionIcon(StormSpirit.optionDagon, "panorama/images/items/dagon_5_png.vtex_c")
 StormSpirit.manaThreshold =  Menu.AddOptionSlider({"Hero Specific", "Storm Spirit"}, "Dont use ult onto themselves then mana less than", 5, 100, 30)
 StormSpirit.targetIndicator = Menu.AddOptionBool({"Hero Specific", "Storm Spirit"}, "Target Indicator", false)
 StormSpirit.optionIcon = Menu.AddOptionIcon({ "Hero Specific","Storm Spirit"}, "panorama/images/heroes/icons/npc_dota_hero_storm_spirit_png.vtex_c")
@@ -70,12 +73,16 @@ function StormSpirit.OnUpdate()
 	if Menu.GetValue(StormSpirit.drawPlace) == 0 then
 		if Input.IsKeyDown(Enum.ButtonCode.KEY_RIGHT) and StormSpirit.optionDrawingX < 100 then
 			StormSpirit.optionDrawingX = StormSpirit.optionDrawingX+1
+			Config.WriteInt("StormPanel", "coordX", StormSpirit.optionDrawingX)
 		elseif Input.IsKeyDown(Enum.ButtonCode.KEY_LEFT) and StormSpirit.optionDrawingX > 1 then
 			StormSpirit.optionDrawingX = StormSpirit.optionDrawingX-1
+			Config.WriteInt("StormPanel", "coordX", StormSpirit.optionDrawingX)
 		elseif Input.IsKeyDown(Enum.ButtonCode.KEY_UP) and StormSpirit.optionDrawingY > 1 then
 			StormSpirit.optionDrawingY = StormSpirit.optionDrawingY-1
+			Config.WriteInt("StormPanel", "coordY", StormSpirit.optionDrawingY)
 		elseif Input.IsKeyDown(Enum.ButtonCode.KEY_DOWN) and StormSpirit.optionDrawingY < 100 then
 			StormSpirit.optionDrawingY = StormSpirit.optionDrawingY+1
+			Config.WriteInt("StormPanel", "coordY", StormSpirit.optionDrawingY)
 		end
 	end
 ---------------------------------------------------------------------------------------------------------------------------
@@ -83,13 +90,20 @@ function StormSpirit.OnUpdate()
 	if Menu.IsEnabled(StormSpirit.drawing) then
 		time_ultimate_to_point, loss_mana, damage,outsizeWidth, insizeWidth = StormSpirit.calc(myHero,myMana,Input.GetWorldCursorPos())
 	end
-	if cm_in_team and cm_talant == false then
-		StormSpirit.FindCMTalant()
-	end
-    if Menu.IsKeyDown(StormSpirit.ComboKey) then
-    	StormSpirit.Combo(myMana)
+	if Menu.IsKeyDown(StormSpirit.ComboKey) then
+		enemy = Input.GetNearestHeroToCursor(myTeam, Enum.TeamType.TEAM_ENEMY)
+		if enemy and enemy ~= 0 then 
+			local protection = StormSpirit.checkProtection(enemy)
+    		StormSpirit.Combo(enemy, myMana, protection)
+    		StormSpirit.UseItems(enemy,myMana,protection)
+    	else
+    		enemy = nil
+    	end
     elseif enemy and enemy ~= 0 then
     	enemy = nil
+	end
+	if cm_in_team and cm_talant == false then
+		StormSpirit.FindCMTalant()
 	end
     StormSpirit.GetInfo(myHero)
 end
@@ -114,6 +128,9 @@ function StormSpirit.GetInfo(hero)
 	StormSpirit.GetItems(hero)
 
 	sleep_after_gameinfo_upd = os.clock()
+
+	StormSpirit.optionDrawingX = Config.ReadInt("StormPanel", "coordX", 20)
+	StormSpirit.optionDrawingY = Config.ReadInt("StormPanel", "coordY", 20)
 end
 
 function StormSpirit.GetItems(hero)
@@ -123,14 +140,22 @@ function StormSpirit.GetItems(hero)
     if not orchid then
         orchid = NPC.GetItem(hero, "item_orchid")
 	end
-	shiva = NPC.GetItem(myHero, "item_shivas_guard", true)
+	shiva = NPC.GetItem(myHero, "item_shivas_guard")
+	dagon = NPC.GetItem(myHero, "item_dagon")
+	if not dagon then
+		for i = 2, 5 do
+			dagon = NPC.GetItem(myHero, "item_dagon_" .. i)
+			if dagon then 
+				break 
+			end
+		end
+	end
 end
 
 
 local sleep_after_cast = 0
 local sleep_after_attack = 0
-function StormSpirit.Combo(mana)
-    enemy = Input.GetNearestHeroToCursor(myTeam, Enum.TeamType.TEAM_ENEMY)
+function StormSpirit.Combo(enemy, mana, protection)
     if not enemy or enemy == 0 then enemy = nil return end
     local enemy_origin = Entity.GetAbsOrigin(enemy)
     local cursor_pos = Input.GetWorldCursorPos()
@@ -141,17 +166,30 @@ function StormSpirit.Combo(mana)
 	end
     local my_origin = Entity.GetAbsOrigin(myHero)
 	local range_to_enemy = (my_origin - enemy_origin):Length2D() 
-	local protection = StormSpirit.checkProtection(enemy)
 	if range_to_enemy < 450 then
 		if vortex and Ability.IsReady(vortex) and Ability.IsCastable(vortex, mana) then
-			if not aghanim and (not protection or Menu.IsEnabled(StormSpirit.checkLinken)) then
-				Ability.CastTarget(vortex, enemy)
+			if Menu.IsEnabled(StormSpirit.checkHex) or not NPC.HasState(enemy, Enum.ModifierState.MODIFIER_STATE_HEXED) then
+				if not aghanim and (not protection or Menu.IsEnabled(StormSpirit.checkLinken)) then
+					Ability.CastTarget(vortex, enemy)
+				else
+					Ability.CastNoTarget(vortex)
+				end
+				sleep_after_cast = os.clock()
 			else
-				Ability.CastNoTarget(vortex)
+				local modifier = NPC.GetModifier(enemy, 'modifier_sheepstick_debuff')
+				if modifier then
+	                if Modifier.GetDieTime(modifier) - GameRules.GetGameTime() 
+	                	< 0.4 + NetChannel.GetAvgLatency(Enum.Flow.FLOW_INCOMING) + NetChannel.GetAvgLatency(Enum.Flow.FLOW_OUTGOING) then
+	                    if not aghanim and (not protection or Menu.IsEnabled(StormSpirit.checkLinken)) then
+							Ability.CastTarget(vortex, enemy)
+						else
+							Ability.CastNoTarget(vortex)
+						end
+						sleep_after_cast = os.clock()
+	                end
+	            end
 			end
-			sleep_after_cast = os.clock()
 		end
-		StormSpirit.UseItems(enemy,mana,protection)
     	if NPC.HasModifier(myHero, "modifier_storm_spirit_overload") or protection == "IMMUNE" then
     		if StormSpirit.SleepReady(0.1, sleep_after_attack)  then 
 	    		Player.AttackTarget(myPlayer, myHero, enemy)
@@ -160,12 +198,27 @@ function StormSpirit.Combo(mana)
     	else
     		if StormSpirit.SleepReady(0.4, sleep_after_cast) then
 	    		if vortex and Ability.IsReady(vortex) and Ability.IsCastable(vortex, mana) then
-	    			if not aghanim then
-	    				Ability.CastTarget(vortex, enemy)
-	    			else
-	    				Ability.CastNoTarget(vortex)
-	    			end
-	    			sleep_after_cast = os.clock()
+	    			if Menu.IsEnabled(StormSpirit.checkHex) or not NPC.HasState(enemy, Enum.ModifierState.MODIFIER_STATE_HEXED) then
+		    			if not aghanim then
+		    				Ability.CastTarget(vortex, enemy)
+		    			else
+		    				Ability.CastNoTarget(vortex)
+		    			end
+		    			sleep_after_cast = os.clock()
+		    		else
+		    			local modifier = NPC.GetModifier(enemy, 'modifier_sheepstick_debuff')
+						if modifier then
+			                if Modifier.GetDieTime(modifier) - GameRules.GetGameTime() 
+			                	< 0.4 + NetChannel.GetAvgLatency(Enum.Flow.FLOW_INCOMING) + NetChannel.GetAvgLatency(Enum.Flow.FLOW_OUTGOING) then
+			                    if not aghanim and (not protection or Menu.IsEnabled(StormSpirit.checkLinken)) then
+									Ability.CastTarget(vortex, enemy)
+								else
+									Ability.CastNoTarget(vortex)
+								end
+								sleep_after_cast = os.clock()
+			                end
+			            end
+		    		end
 	    		elseif remnant and Ability.IsReady(remnant) and Ability.IsCastable(remnant, mana) then
 	    			Ability.CastNoTarget(remnant)
 	    			sleep_after_cast = os.clock()
@@ -209,13 +262,16 @@ function StormSpirit.Combo(mana)
 end
 
 function StormSpirit.UseItems(enemy,mana, protection)
+	if not enemy then 
+		return
+	end
 	if not protection then
-		if hex and Menu.IsEnabled(StormSpirit.optionHex) and Ability.IsReady(hex) and Ability.IsCastable(hex,mana) then
-			Ability.CastTarget(hex, enemy)
+		if orchid and Menu.IsEnabled(StormSpirit.optionOrchid) and Ability.IsReady(orchid) and Ability.IsCastable(orchid, mana) then
+			Ability.CastTarget(orchid, enemy)
 			return
 		end
-		if orchid and Menu.IsEnabled(StormSpirit.optionOrchid) and Ability.IsReady(orchid) and Ability.IsCastable(orchid,mana) then
-			Ability.CastTarget(orchid, enemy)
+		if hex and Menu.IsEnabled(StormSpirit.optionHex) and Ability.IsReady(hex) and Ability.IsCastable(hex,mana) then
+			Ability.CastTarget(hex, enemy)
 			return
 		end
 		if shiva and Menu.IsEnabled(StormSpirit.optionShiva) and Ability.IsReady(shiva) and Ability.IsCastable(shiva,mana) then
@@ -224,6 +280,10 @@ function StormSpirit.UseItems(enemy,mana, protection)
 		end
 		if null and Menu.IsEnabled(StormSpirit.optionNullifier) and Ability.IsReady(null) and Ability.IsCastable(null,mana) then
 			Ability.CastTarget(null, enemy)
+			return
+		end
+		if dagon and Menu.IsEnabled(StormSpirit.optionDagon) and Ability.IsReady(dagon) and Ability.IsCastable(dagon, mana) then
+			Ability.CastTarget(dagon, enemy)
 			return
 		end
 	end
