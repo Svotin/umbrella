@@ -6,9 +6,14 @@ local time = os.clock;
 local update_rate = 0.3;
 
 local MainOption = Menu.AddOptionBool({"Utility", "Abyssal Abuse"}, "Enable", false);
-Menu.AddMenuIcon({"Utility", "Abyssal Abuse"}, "panorama/images/items/".."abyssal_blade".."_png.vtex_c")
+local ToggleKey = Menu.AddKeyOption({"Utility", "Abyssal Abuse"}, "Toggle Key", Enum.ButtonCode.KEY_NONE);
+Menu.AddMenuIcon({"Utility", "Abyssal Abuse"}, "panorama/images/items/".."abyssal_blade".."_png.vtex_c");
 
 function Abuse.OnUpdate()
+	if (Menu.IsKeyDownOnce(ToggleKey)) then
+		Menu.SetEnabled(MainOption, not Menu.IsEnabled(MainOption));
+	end;
+
 	if (not Menu.IsEnabled(MainOption)) then
 		myHero = nil;
 		return;
