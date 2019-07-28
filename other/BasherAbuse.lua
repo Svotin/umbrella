@@ -55,7 +55,7 @@ function Abuse.OnParticleCreate(prt)
 	if (not basher or not myHero) then
 		return;
 	end;
-	if (prt.name == "generic_minibash" and prt.entityForModifiers == myHero and Entity.IsHero(prt.entity) 
+	if (prt.name == "generic_minibash" and prt.entityForModifiers == myHero and (Entity.IsHero(prt.entity) or NPC.GetUnitName(prt.entity) == "npc_dota_roshan")
 	 and Abuse.HasFreeSlots(myHero, 2) and not NPC.HasState(myHero, Enum.ModifierState.MODIFIER_STATE_STUNNED)) then
 		lastBash = time();
 		Abuse.Disassemble(basher);
